@@ -216,7 +216,9 @@ or move them to different times. The user must review the warning.
   plan. Cross-midnight overlaps are not detected.
 - **No AI model:** The system uses explicit rules, not a trained model,
   generative agent, retriever, or evaluator. Preferences are collected but
-  do not influence task selection.
+  do not influence task selection. GitHub Copilot and Google Gemini were
+  used during development only; no Gemini API or other AI service is
+  integrated into the application.
 - **Input limitations:** The Streamlit form restricts duration to positive
   values and times to its time picker. Direct Python callers can still create
   invalid task values; the scheduler skips non-positive durations and the

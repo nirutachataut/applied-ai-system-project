@@ -39,7 +39,7 @@ tests/test_pawpal.py::test_detect_conflicts_returns_empty_for_no_tasks_and_dedup
 Pytest exit status: 0
 
 $ python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
-2026-11-17 23:49:31.828 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-11-18 00:01:48.048 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 Streamlit AppTest startup: PASS (no app exceptions)
 Default owner initialized: Jordan
 AppTest exit status: 0

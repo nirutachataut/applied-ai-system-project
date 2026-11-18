@@ -14,9 +14,11 @@ plan. The `Scheduler` orders tasks by priority, includes positive-duration
 pending tasks while they fit the available-time budget, explains its
 selections, and reports some schedule conflicts.
 
-The application does not use a trained AI model, a generative agent, or a
-retriever at runtime. The scheduling decisions are deterministic rules.
-Preferences are stored but do not influence the generated plan. PawPal+ is an
+The application does not use a trained AI model, a generative agent, a
+retriever, or a Gemini API at runtime. The scheduling decisions are
+deterministic rules. GitHub Copilot and Google Gemini were used during
+development only; neither is integrated into the application. Preferences
+are stored but do not influence the generated plan. PawPal+ is an
 organizational aid, not veterinary or medical advice.
 
 ## Reflection and Responsible AI
@@ -76,23 +78,17 @@ pet. There is no full interactive UI test or formal human-evaluation study.
 
 ### 4. How did you collaborate with AI during this project?
 
-I used AI assistance to help me understand the project requirements, review my code, improve documentation, and identify useful test cases. AI also helped me organize the system architecture and understand how the different components work together.
+During this project, I used GitHub Copilot and Google Gemini to help me develop PawPal+. Copilot helped me with coding, debugging, testing, and improving the structure of my project. I also used Gemini to understand concepts better, explore ideas, and get suggestions when I needed additional guidance.
 
 #### One AI suggestion I accepted
 
-I accepted the suggestion to create a Mermaid system architecture diagram. It helped me clearly show how the user interface, scheduling system, and testing components connect. This made my project easier to understand and explain.
+One AI suggestion I accepted was creating a Mermaid system architecture diagram because it helped me understand and explain how the different parts of my project work together.
 
 #### One AI suggestion I modified
 
-I modified the suggestion to include more advanced AI components, such as an AI agent or retriever, in the system architecture. Since my project currently uses rule-based scheduling, I decided to keep the diagram focused on the components that actually exist. I felt this was a better choice because it kept my project simple and accurately represented how it works.
+One suggestion I modified was including advanced AI components that were not actually part of my application. I decided to keep the architecture focused on the existing scheduling system so that the diagram would be simple and accurate.
 
-### 5. What did you learn from this project?
-
-This project taught me that building a useful system is not just about
-writing code. It is also important to test the program, understand its
-limitations, and explain how it works. I learned how AI assistance can help
-with development, but I also realized that I need to review its suggestions
-and make my own decisions instead of accepting everything automatically.
+This project taught me that AI tools can be helpful during development, but I still need to review their suggestions and decide what works best for my project.
 
 ## Responsible AI and Human Oversight
 
