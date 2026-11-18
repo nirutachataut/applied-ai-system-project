@@ -132,30 +132,33 @@ if owner.pets:
     )
 
 if st.button("Add task", disabled=selected_pet is None):
-    priority_values = {"low": 1, "medium": 2, "high": 3}
-    task = Task(
-        title=task_title,
-        duration_minutes=int(duration),
-        priority=priority_values[priority],
-        frequency=frequency,
-        scheduled_time=scheduled_time.strftime("%H:%M"),
-        due_date=due_date,
-    )
-    owner.pets[selected_pet].add_task(task)
-    task_conflicts = Scheduler(owner).detect_conflicts()
-    if task_conflicts:
-        st.info(
-            f"Added '{task.title}' to {owner.pets[selected_pet].name}'s tasks. "
-            "Review the scheduling conflict warning below."
-        )
+    if not task_title.strip():
+        st.warning("Enter a task title before adding a task.")
     else:
-        st.success(
-            f"Added '{task.title}' to {owner.pets[selected_pet].name}'s tasks. "
-            "No scheduling conflicts found."
+        priority_values = {"low": 1, "medium": 2, "high": 3}
+        task = Task(
+            title=task_title.strip(),
+            duration_minutes=int(duration),
+            priority=priority_values[priority],
+            frequency=frequency,
+            scheduled_time=scheduled_time.strftime("%H:%M"),
+            due_date=due_date,
         )
-    st.session_state.daily_plan = []
-    st.session_state.plan_explanation = ""
-    st.session_state.conflict_warnings = []
+        owner.pets[selected_pet].add_task(task)
+        task_conflicts = Scheduler(owner).detect_conflicts()
+        if task_conflicts:
+            st.info(
+                f"Added '{task.title}' to {owner.pets[selected_pet].name}'s tasks. "
+                "Review the scheduling conflict warning below."
+            )
+        else:
+            st.success(
+                f"Added '{task.title}' to {owner.pets[selected_pet].name}'s tasks. "
+                "No scheduling conflicts found."
+            )
+        st.session_state.daily_plan = []
+        st.session_state.plan_explanation = ""
+        st.session_state.conflict_warnings = []
 
 all_tasks = owner.get_all_tasks()
 if st.session_state.completion_message:

@@ -1,4 +1,7 @@
 from datetime import date
+from pathlib import Path
+
+from streamlit.testing.v1 import AppTest
 
 from pawpal_system import Owner, Pet, Scheduler, Task
 
@@ -417,3 +420,15 @@ def test_detect_conflicts_returns_empty_for_no_tasks_and_deduplicates_pairs():
     assert len(warnings) == 1
     assert "Walk Buddy" in warnings[0]
     assert "Feed Buddy" in warnings[0]
+
+
+def test_streamlit_app_rejects_blank_task_title():
+    app = AppTest.from_file(Path(__file__).parents[1] / "app.py").run()
+    next(button for button in app.button if button.label == "Add pet").click().run()
+    app.text_input(key="task_title").set_value(" \t ")
+    next(button for button in app.button if button.label == "Add task").click().run()
+
+    assert app.session_state["owner"].get_all_tasks() == []
+    assert any(
+        "Enter a task title" in warning.value for warning in app.warning
+    )

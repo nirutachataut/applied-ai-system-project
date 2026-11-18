@@ -1,21 +1,20 @@
 flowchart TD
-    U[User input<br/>Owner, pet, and care-task details] --> UI[Streamlit interface<br/>app.py]
-    UI --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
-    DM --> SL[Rule-based scheduling logic<br/>Priority and available-time rules]
-    SL --> GS[Generated daily plan<br/>Selected tasks and explanation]
-    SL --> CW[Conflict warnings]
-    GS --> UI
+    U[Pet owner<br/>Availability, pets, and care tasks] --> UI[Streamlit interface<br/>app.py]
+    UI --> IV[Form validation<br/>Pet and task title required; availability, duration, and priority constrained]
+    IV --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
+    DM --> SL[Rule-based scheduling<br/>Priority and available-time budget]
+    SL --> PL[Generated daily plan<br/>Selected pending tasks]
+    SL --> EX[Task explanations<br/>Reasons for selected and skipped tasks]
+    DM --> CC[Conflict checking<br/>Valid pending intervals on the same date]
+    CC --> CW[Conflict warnings]
+    PL --> UI
+    EX --> UI
     CW --> UI
-    UI --> HR[Human review<br/>Review the plan and any warnings]
-    HR -. Adjust form inputs or add tasks, then regenerate .-> UI
+    UI --> HR[Human review<br/>Review the plan and warnings]
+    HR -. Adjust inputs and regenerate .-> UI
 
-    AT[Automated tests<br/>tests/test_pawpal.py]
-    AT -. Test models and recurrence .-> DM
-    AT -. Test selection, sorting, and conflicts .-> SL
-
-    classDef ruleBased fill:#e8f1ff,stroke:#3568a8
-    classDef review fill:#fff4d6,stroke:#a87800
-    classDef tests fill:#e8f5e9,stroke:#43834a
-    class SL ruleBased
-    class HR review
-    class AT tests
+    AT[Automated pytest suite<br/>tests/test_pawpal.py]
+    AT -. Test model behavior .-> DM
+    AT -. Test plan choices and explanations .-> SL
+    AT -. Test overlap detection .-> CC
+    AT -. Test blank-title validation .-> IV

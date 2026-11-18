@@ -52,43 +52,43 @@ warnings before following them. PawPal+ helps organize daily tasks and does
 not replace professional veterinary advice.
 
 The application currently shows reasons for selected or skipped tasks and
-displays detected conflict warnings. Its Streamlit form also constrains
-available time to non-negative values, task duration to 1–240 minutes, and
-priority to low, medium, or high. It requires a pet before enabling task
-entry and warns when the pet name is blank. These checks do not guarantee
-that a plan is realistic: conflict warnings do not change the plan, task
-titles are not validated, direct Python callers can bypass the form
-constraints, and the interface does not currently show a veterinary
-disclaimer. A clear in-app notice and stronger input validation would be
-useful future safeguards.
+displays detected conflict warnings. Its Streamlit form constrains available
+time to non-negative values, task duration to 1–240 minutes, and priority to
+low, medium, or high. It requires a pet before enabling task entry and
+rejects blank task titles. These checks do not guarantee that a plan is
+realistic: conflict warnings do not change the plan, direct Python callers
+can bypass form constraints, and the interface does not currently show a
+veterinary disclaimer. A clear in-app notice and stronger validation for
+direct inputs would be useful future safeguards.
 
 ### 3. What surprised you while testing your AI's reliability?
 
-What surprised me was how important it is to test small details, not just whether the program runs. I learned that even a simple scheduling system needs to handle situations like conflicting tasks, different priorities, and missing information. Testing helped me understand that a program can appear to work correctly but still need checks for unusual situations. It also showed me why automated tests are useful for making a project more reliable.
+What surprised me during testing was how important it is to check small details instead of only checking whether the application runs. I learned that scheduling conflicts, priorities, and missing information all need to be handled carefully.
 
-The recorded pytest run reports **26 tests passed and 0 failed**. The tests
+The recorded pytest run reports **27 tests passed and 0 failed**. The tests
 cover model behavior, sorting, filtering, recurrence, plan selection,
 priorities and time limits, empty schedules, missing optional schedule
-details, and conflict detection for overlaps and invalid or ineligible tasks.
-A separate Streamlit `AppTest` startup check passed without app exceptions;
-it emitted a bare-mode `ScriptRunContext` warning. The actual command output
-is in [tests/test_results.txt](tests/test_results.txt). These tests verify
-the behaviors they exercise, not whether a care plan is appropriate for every
+details, conflict detection for overlaps and invalid or ineligible tasks,
+and rejection of a blank task title in the Streamlit interface. A separate
+Streamlit `AppTest` startup check passed without app exceptions; it emitted
+a bare-mode `ScriptRunContext` warning. The actual command output is in
+[tests/test_results.txt](tests/test_results.txt). These tests verify the
+behaviors they exercise, not whether a care plan is appropriate for every
 pet. There is no full interactive UI test or formal human-evaluation study.
 
 ### 4. How did you collaborate with AI during this project?
 
-During this project, I used GitHub Copilot and Google Gemini to help me develop PawPal+. Copilot helped me with coding, debugging, testing, and improving the structure of my project. I also used Gemini to understand concepts better, explore ideas, and get suggestions when I needed additional guidance.
+During this project, I used GitHub Copilot and Google Gemini to help me develop PawPal+. Copilot helped me write and review code, debug problems, improve testing, and organize my project. I also used Gemini to understand concepts better, explore ideas, and get additional suggestions.
 
 #### One AI suggestion I accepted
 
-One AI suggestion I accepted was creating a Mermaid system architecture diagram because it helped me understand and explain how the different parts of my project work together.
+One AI suggestion I accepted was creating a Mermaid system architecture diagram. It helped me understand how the different parts of my project connect and made the system easier to explain.
 
 #### One AI suggestion I modified
 
-One suggestion I modified was including advanced AI components that were not actually part of my application. I decided to keep the architecture focused on the existing scheduling system so that the diagram would be simple and accurate.
+One suggestion I modified was including advanced AI components that were not actually part of my application. Instead, I kept the diagram focused on the scheduling system and existing features so it accurately represents my project.
 
-This project taught me that AI tools can be helpful during development, but I still need to review their suggestions and decide what works best for my project.
+This project taught me that AI tools can be very helpful during development, but I still need to review their suggestions and make decisions myself.
 
 ## Responsible AI and Human Oversight
 

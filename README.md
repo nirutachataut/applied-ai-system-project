@@ -27,41 +27,43 @@ and date are used for task-list sorting and conflict detection.
 
 ## Architecture Overview
 
-The Streamlit interface in `app.py` collects input and updates the
-`Owner`, `Pet`, and `Task` objects defined in `pawpal_system.py`. When the
-user requests a plan, `Scheduler` applies priority and available-time rules
-and returns the selected tasks with an explanation. The interface also shows
-conflict warnings for the owner to review. The owner remains responsible for
-deciding whether the plan is suitable and can change form values or add tasks
-before generating the plan again.
+The Streamlit interface in `app.py` collects input, applies form constraints,
+and updates the `Owner`, `Pet`, and `Task` objects defined in
+`pawpal_system.py`. When the user requests a plan, `Scheduler` applies
+priority and available-time rules, explains selected and skipped tasks, and
+checks scheduled tasks for same-date overlaps. The interface shows the plan,
+explanations, and any conflict warnings for the owner to review; the owner can
+adjust inputs and generate another plan.
 
-The pytest suite exercises model behavior and core scheduling methods. It does
-not currently test the Streamlit interface or perform an automatic quality
-evaluation of a generated plan. A Streamlit startup smoke check is described
-in the [test results log](tests/test_results.txt).
+These deterministic checks are part of the application workflow. The pytest
+suite separately tests the scheduling and conflict-checking methods; it is
+not run automatically by the Streamlit app. It includes a focused Streamlit
+test that checks rejection of blank task titles, but it does not cover the
+full interactive interface or perform an automatic quality evaluation of a
+generated plan. A startup smoke check is described in the
+[test results log](tests/test_results.txt).
 
 ```mermaid
 flowchart TD
-    U[User input<br/>Owner, pet, and care-task details] --> UI[Streamlit interface<br/>app.py]
-    UI --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
-    DM --> SL[Rule-based scheduling logic<br/>Priority and available-time rules]
-    SL --> GS[Generated daily plan<br/>Selected tasks and explanation]
-    SL --> CW[Conflict warnings]
-    GS --> UI
+    U[Pet owner<br/>Availability, pets, and care tasks] --> UI[Streamlit interface<br/>app.py]
+    UI --> IV[Form validation<br/>Pet and task title required; availability, duration, and priority constrained]
+    IV --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
+    DM --> SL[Rule-based scheduling<br/>Priority and available-time budget]
+    SL --> PL[Generated daily plan<br/>Selected pending tasks]
+    SL --> EX[Task explanations<br/>Reasons for selected and skipped tasks]
+    DM --> CC[Conflict checking<br/>Valid pending intervals on the same date]
+    CC --> CW[Conflict warnings]
+    PL --> UI
+    EX --> UI
     CW --> UI
-    UI --> HR[Human review<br/>Review the plan and any warnings]
-    HR -. Adjust form inputs or add tasks, then regenerate .-> UI
+    UI --> HR[Human review<br/>Review the plan and warnings]
+    HR -. Adjust inputs and regenerate .-> UI
 
-    AT[Automated tests<br/>tests/test_pawpal.py]
-    AT -. Test models and recurrence .-> DM
-    AT -. Test selection, sorting, and conflicts .-> SL
-
-    classDef ruleBased fill:#e8f1ff,stroke:#3568a8
-    classDef review fill:#fff4d6,stroke:#a87800
-    classDef tests fill:#e8f5e9,stroke:#43834a
-    class SL ruleBased
-    class HR review
-    class AT tests
+    AT[Automated pytest suite<br/>tests/test_pawpal.py]
+    AT -. Test model behavior .-> DM
+    AT -. Test plan choices and explanations .-> SL
+    AT -. Test overlap detection .-> CC
+    AT -. Test blank-title validation .-> IV
 ```
 
 The standalone Mermaid source is [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd).
@@ -134,6 +136,9 @@ Selected 'Feed Mochi' (priority 3): it fits in the remaining time.
 Selected 'Play with Mochi' (priority 2): it fits in the remaining time.
 ```
 
+**Explanation:** Both tasks are selected in priority order because their
+combined 35 minutes fit within Riley's 45-minute budget.
+
 ### 2. Priority with limited time
 
 **Input:** Jordan has 35 minutes. A 30-minute walk has priority 3, medication
@@ -162,6 +167,9 @@ Selected 'Walk Buddy' (priority 3): it fits in the remaining time.
 Skipped 'Medication' (priority 2): not enough available time.
 Selected 'Play with Buddy' (priority 1): it fits in the remaining time.
 ```
+
+**Explanation:** The 30-minute walk is selected first. Medication cannot fit
+in the remaining 5 minutes, but the 5-minute play task can.
 
 ### 3. Overlapping scheduled tasks
 
@@ -197,6 +205,10 @@ Warnings:
 Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Buddy (09:15-09:25).
 ```
 
+**Explanation:** Both tasks fit in the 60-minute budget, but their scheduled
+intervals overlap. PawPal+ reports the conflict and leaves the owner to review
+the plan; it does not move or remove either task.
+
 Conflict detection reports an overlap but does not remove tasks from the plan
 or move them to different times. The user must review the warning.
 
@@ -220,9 +232,11 @@ or move them to different times. The user must review the warning.
   used during development only; no Gemini API or other AI service is
   integrated into the application.
 - **Input limitations:** The Streamlit form restricts duration to positive
-  values and times to its time picker. Direct Python callers can still create
-  invalid task values; the scheduler skips non-positive durations and the
-  conflict checker ignores invalid or missing scheduling details.
+  values, available time to non-negative values, and task titles to nonblank
+  text; priorities and times use selection controls. Direct Python callers
+  can still create invalid task values; the scheduler skips non-positive
+  durations and the conflict checker ignores invalid or missing scheduling
+  details.
 
 ## Reliability and Evaluation
 
@@ -233,12 +247,10 @@ includes empty schedules, zero time, completed and non-positive-duration
 tasks, missing scheduling details, invalid times, back-to-back tasks, and
 overlaps across pets.
 
-Final run: **26 tests passed, 0 failed** with `python3 -m pytest -v`. During
-test development, one new assertion initially expected the invalid-duration
-explanation to include a priority label; the observed implementation omits
-that label for this case. The assertion was corrected to match the existing
-behavior, and the final full run passed. No scheduling implementation change
-was needed.
+Final run: **27 tests passed, 0 failed** with `python3 -m pytest -v`. The suite
+covers model behavior, scheduling priorities and time limits, conflict
+detection, invalid scheduling details, and blank-title validation in the
+Streamlit interface.
 
 | Test input | Evaluation criteria | Actual result | Pass/Fail |
 |---|---|---|---|
@@ -248,13 +260,15 @@ was needed.
 | Positive-duration task without a due date or scheduled time | Generate a plan when optional scheduling details are absent | The task was selected; due date and scheduled time are not required by plan generation | Pass |
 | Two pets have tasks on the same date, one starting at 09:00 for 30 minutes and one at 09:15 for 10 minutes | Detect partial overlap across pets | Returned `Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).` | Pass |
 | Tasks have missing or invalid times, are completed, or have zero duration | Ignore ineligible tasks during conflict checks | No conflict warning was returned for the tested invalid/ineligible inputs | Pass |
+| Whitespace-only task title entered in Streamlit | Reject incomplete task before creating it | Warning shown and no task added | Pass |
 
 The command output is saved in [tests/test_results.txt](tests/test_results.txt).
-An `AppTest` startup smoke check also completed without app exceptions and
+The suite includes a focused AppTest for blank task-title validation. A
+separate startup smoke check also completed without app exceptions and
 confirmed that the default owner was initialized. Streamlit emitted its
-expected bare-mode `ScriptRunContext` warning during that check. This is not a
-full interactive browser test. No formal human-evaluation study was performed;
-the interface presents plans and warnings for the owner to inspect.
+expected bare-mode `ScriptRunContext` warning during those checks. This is
+not a full interactive browser test. No formal human-evaluation study was
+performed; the interface presents plans and warnings for the owner to inspect.
 
 Remaining gaps include automated UI interaction tests, tests for
 cross-midnight conflicts, and broader validation of malformed direct API
