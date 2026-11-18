@@ -2,8 +2,8 @@
 
 PawPal+ is a rule-based pet-care planning application, not a deployed
 machine-learning model. This card describes what the code does, where human
-judgment is needed, and which personal reflections still need the author's
-confirmation.
+judgment is needed, and the author's reflections on developing and testing
+the project.
 
 ## System Overview
 
@@ -19,130 +19,95 @@ retriever at runtime. The scheduling decisions are deterministic rules.
 Preferences are stored but do not influence the generated plan. PawPal+ is an
 organizational aid, not veterinary or medical advice.
 
-## Limitations and Potential Biases
+## Reflection and Responsible AI
 
-- The priority-first, greedy scheduler does not search for the best overall
-  combination of tasks. A long high-priority task can leave too little time
-  for multiple lower-priority tasks that might together be more useful.
-- Plan generation does not filter tasks by due date or assign them to
-  scheduled time slots. Due dates and times are used for task display and
-  conflict checking, not for selecting the generated plan.
-- Conflict checking warns about overlapping pending tasks with valid times
-  and the same date, but it does not resolve or remove the conflict.
-  Cross-midnight overlaps are not detected.
-- The result depends on accurate durations, priorities, and task details.
-  The app cannot infer that an owner has entered an unrealistic duration or
-  forgotten an important task.
-- Pet care needs differ by age, health, species, and individual circumstances.
-  The scheduler does not model those differences. It treats tasks according
-  to their entered priority and duration; owner preferences are not used.
-- The available-time field assumes a single usable time budget. Emergencies,
-  changing availability, travel time, and other unexpected events are not
-  represented.
-- Task data is kept in Streamlit session state rather than a persistent
-  database. The application has not been validated for medical or veterinary
-  decisions.
-- Missing or invalid date/time information is ignored by conflict detection,
-  so a warning may not be produced for incomplete task data.
+### 1. What are the limitations or biases in your system?
 
-These are limitations of the implemented logic, not measured fairness or
-accuracy findings.
+PawPal+ depends on the information entered by the user. If information is
+incorrect or an important task is missing, the schedule might not be accurate.
+The system uses predefined scheduling rules and cannot fully understand each
+pet's individual needs or handle unexpected situations. Different pets have
+different routines, so the same scheduling approach might not be suitable for
+everyone.
 
-## Potential Misuse and Prevention
+The scheduler selects tasks by priority and available time. It does not use
+owner preferences or due dates to build the plan, and it warns about some
+overlaps without resolving them. These limitations reflect the implemented
+rules; no fairness or accuracy study has been conducted.
 
-A user could treat the generated plan as complete or authoritative, follow an
-unrealistic schedule without checking it, or mistake organization support for
-professional pet-care guidance. A conflict warning does not fix a schedule:
-both tasks may still appear in the generated plan. The app does not currently
-display a veterinary disclaimer in its interface.
+The available-time value is treated as one total time budget. The plan does
+not assign tasks to time slots or account for travel, changing availability,
+or emergencies. Conflict checks cover valid scheduled tasks on the same date;
+they do not detect cross-midnight overlaps, and missing or invalid schedule
+details can prevent a warning. Application data is held in Streamlit session
+state rather than saved in a persistent database.
 
-**Protections currently implemented**
+### 2. Could your AI be misused, and how would you prevent that?
 
-- The Streamlit form constrains available time to non-negative values,
-  duration to 1–240 minutes, and priority to low, medium, or high. It asks for
-  a pet before enabling task entry and warns when the pet name is blank.
-- The scheduler displays reasons for selected or skipped tasks.
-- The app displays conflict warnings so the owner can inspect overlaps; it
-  does not silently reschedule tasks.
-- Users can review the output, change owner settings or task form values,
-  add tasks, and generate the plan again.
+Users might rely too much on a generated schedule without checking whether it
+suits their pet, especially if the pet needs special care or medical
+attention. PawPal+ is meant to help organize daily tasks, not replace advice
+from a veterinarian. Users should review the schedule and any conflict
+warnings before following it.
 
-These checks do not prove that a duration or plan is realistic. The form does
-not validate every field (for example, task titles can be blank), and direct
-Python callers can construct values outside the UI constraints.
+The application currently shows reasons for selected or skipped tasks and
+displays detected conflict warnings. Its Streamlit form also constrains
+available time to non-negative values, task duration to 1–240 minutes, and
+priority to low, medium, or high. It requires a pet before enabling task
+entry and warns when the pet name is blank. These checks do not guarantee
+that a plan is realistic: conflict warnings do not change the plan, task
+titles are not validated, direct Python callers can bypass the form
+constraints, and the interface does not currently show a veterinary
+disclaimer. A clear in-app notice and stronger input validation would be
+useful future safeguards.
 
-**Additional safeguards proposed for future work**
+### 3. What surprised you while testing your AI's reliability?
 
-- Add a clear in-app notice that PawPal+ is not veterinary advice and that
-  owners should confirm care requirements with a qualified professional.
-- Validate required task details and provide clear feedback for malformed or
-  incomplete data, including direct API use.
-- Make unresolved conflicts and assumptions more prominent, and let users
-  edit or reschedule existing tasks rather than only adding tasks or
-  completing them.
-- Ask the owner to confirm a generated plan before treating it as final.
+What surprised me was how important it is to test small details, not just
+whether the program runs. I learned that even a simple scheduling system
+needs to handle situations like conflicting tasks, different priorities, and
+missing information. Testing helped me understand that a program can appear
+to work correctly but still need checks for unusual situations. It also
+showed me why automated tests are useful for making a project more reliable.
 
-## Reliability Testing Reflection
+The recorded pytest run reports **26 tests passed and 0 failed**. The tests
+cover model behavior, sorting, filtering, recurrence, plan selection,
+priorities and time limits, empty schedules, missing optional schedule
+details, and conflict detection for overlaps and invalid or ineligible tasks.
+A separate Streamlit `AppTest` startup check passed without app exceptions;
+it emitted a bare-mode `ScriptRunContext` warning. The actual command output
+is in [tests/test_results.txt](tests/test_results.txt). These tests verify
+the behaviors they exercise, not whether a care plan is appropriate for every
+pet. There is no full interactive UI test or formal human-evaluation study.
 
-The saved pytest run reports **26 tests passed and 0 failed**. Tests exercise
-model operations, sorting, filtering, daily and weekly recurrence, plan
-selection under a time budget, completed and non-positive-duration tasks,
-empty schedules, missing optional schedule details, and conflict detection
-for overlaps, back-to-back tasks, different dates, and invalid or incomplete
-conflict inputs. The recorded output is in
-[tests/test_results.txt](tests/test_results.txt). A separate Streamlit
-`AppTest` startup check also passed without app exceptions; it emitted a
-bare-mode `ScriptRunContext` warning.
+### 4. How did you collaborate with AI during this project?
 
-During test development, an initial assertion expected a priority label in
-the explanation for an invalid-duration task. The observed implementation
-omits that label for this case, so the assertion was corrected and the final
-suite passed. This was a mismatch in the test expectation, not an application
-failure. Testing also confirms that conflict warnings are produced for
-tested same-date overlaps, but the scheduler does not resolve them.
+I used AI assistance to help me understand the project requirements, review
+my code, improve documentation, and identify useful test cases. AI also
+helped me understand how to organize the system architecture and explain how
+the components work together. I reviewed suggestions against the project
+instead of assuming they were correct.
 
-**What surprised me — personal reflection needed:** The repository records
-the test behavior above, but it does not document what personally surprised
-the author. [Complete this sentence in your own words: “While testing
-reliability, I was surprised that …”] Do not treat the initial assertion
-mismatch as a personal reaction unless that reflects your experience.
+#### One AI suggestion I accepted
 
-Passing tests demonstrate those tested software behaviors only. They do not
-show that every care plan is appropriate, and no formal human-evaluation
-study, interactive UI test suite, or cross-midnight conflict test has been
-recorded.
+I accepted the suggestion to create a Mermaid system architecture diagram.
+It helped me show how the user interface, scheduling system, and testing
+components connect, making the project easier to understand and explain.
 
-## Collaboration With AI
+#### One AI suggestion I modified
 
-The existing [project reflection](reflection.md) reports using AI assistance
-to draft the UML and class skeletons, implement methods, review code, suggest
-tests, connect the backend to Streamlit, and help with documentation. It also
-describes checking suggestions against the source code and tests. The
-repository does not preserve the exact prompts or a complete conversation
-log, so the decisions below are summarized from that reflection rather than
-quoted as verbatim AI messages.
+I modified the suggestion to include more advanced AI components, such as an
+AI agent or retriever, in the system architecture. PawPal+ currently uses
+rule-based scheduling, so I kept the diagram focused on components that
+actually exist. This kept the diagram simple and accurate.
 
-### AI Suggestion I Accepted
+### 5. What did you learn from this project?
 
-The reflection documents an AI-assisted comparison between direct pairwise
-conflict checks and grouping/sorting tasks. The design decision recorded
-there is to keep the simpler pairwise comparison: it is readable, fits the
-small schedules in this project, and the reflection says it was checked with
-overlap, back-to-back, different-date, and invalid-input tests.
-
-**Author confirmation:** [Confirm that this describes a suggestion you
-accepted. The exact AI wording is not recorded; revise this section if your
-recollection differs.]
-
-### AI Suggestion I Rejected or Modified
-
-The reflection records not accepting a suggestion to add functionality while
-still building the class skeletons; that work was deferred until the later
-implementation phase to follow the assignment steps. This is documented as a
-delay, not a permanent rejection.
-
-**Author confirmation:** [Confirm that this accurately describes the
-suggestion and your decision. The exact prompt and wording are not recorded.]
+This project taught me that building a useful system is not just about
+writing code. It is also important to test the program, understand its
+limitations, and explain how it works. I learned how AI assistance can help
+with development, but I also realized that I need to review its suggestions
+and make my own decisions instead of accepting everything automatically.
 
 ## Responsible AI and Human Oversight
 
