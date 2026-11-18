@@ -1,13 +1,13 @@
 # PawPal+
 
-PawPal+ is the pet-care planning project for CodePath AI110, and this
-repository identifies the implementation as the **Module 2 Project**. Its
-original goal was to help pet owners track care tasks and create a daily plan
-from task priorities and available time, with an explanation of the
-selections. The current Streamlit app also manages task completion and flags
-scheduling conflicts using deterministic rules; it does not use a trained or
-generative AI model, and the repository does not separately describe Modules
-1 and 3.
+PawPal+ is the original pet-care planning project carried forward from
+CodePath AI110 Modules 1–3; the repository history identifies its starter as
+the **Module 2 Project**, rather than documenting separate projects for each
+module. The original project was designed to help pet owners track care tasks
+and create an explained daily plan based on task priorities and available
+time. This submission builds on that foundation with a Streamlit interface,
+task completion and recurrence, sorting and filtering, and conflict warnings;
+the scheduler continues to use deterministic rules.
 
 ## Features
 
@@ -75,7 +75,7 @@ the declared dependencies:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 Start the Streamlit interface:
@@ -87,18 +87,20 @@ streamlit run app.py
 Run the command-line demonstration:
 
 ```bash
-python main.py
+python3 main.py
 ```
 
 Run the automated tests:
 
 ```bash
-python -m pytest -v
+python3 -m pytest -v
 ```
 
-The commands above use `python` after activating the virtual environment. In
-the validation environment for this repository, the executable was named
-`python3`, so the recorded test run used `python3 -m pytest -v`.
+These commands use `python3`. If your system exposes Python as `python`,
+replace `python3` with `python` in the commands above. In this validation
+environment, the requested `python -m pytest -v` command could not run because
+no `python` executable is on PATH; the full suite was run successfully with
+`python3 -m pytest -v` instead.
 
 ## Sample Interactions
 
@@ -268,6 +270,5 @@ It also records the importance of reviewing AI assistance and running tests
 rather than accepting generated code without verification. Owner preferences
 and richer scheduling constraints remain possible improvements.
 
-The graded personal AI-collaboration and responsible-AI reflection is kept in
-[model_card.md](model_card.md); personal details not documented in the
-existing reflection are clearly marked for the author to complete.
+The graded AI-collaboration and responsible-AI reflection is in
+[model_card.md](model_card.md).

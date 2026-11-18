@@ -1,3 +1,4 @@
+$ python3 -m pytest -v
 ============================= test session starts ==============================
 platform darwin -- Python 3.11.9, pytest-9.2.0, pluggy-1.7.0 -- /Library/Frameworks/Python.framework/Versions/3.11/bin/python3
 cachedir: .pytest_cache
@@ -33,10 +34,12 @@ tests/test_pawpal.py::test_detect_conflicts_ignores_different_dates PASSED [ 92%
 tests/test_pawpal.py::test_detect_conflicts_ignores_completed_and_invalid_tasks PASSED [ 96%]
 tests/test_pawpal.py::test_detect_conflicts_returns_empty_for_no_tasks_and_deduplicates_pairs PASSED [100%]
 
-============================== 26 passed in 0.02s ==============================
+============================== 26 passed in 0.01s ==============================
 
-Command: python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
-Output:
-2026-11-17 22:03:31.261 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+Pytest exit status: 0
+
+$ python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
+2026-11-17 23:49:31.828 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 Streamlit AppTest startup: PASS (no app exceptions)
 Default owner initialized: Jordan
+AppTest exit status: 0

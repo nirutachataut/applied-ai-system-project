@@ -23,12 +23,12 @@ organizational aid, not veterinary or medical advice.
 
 ### 1. What are the limitations or biases in your system?
 
-PawPal+ depends on the information entered by the user. If information is
-incorrect or an important task is missing, the schedule might not be accurate.
-The system uses predefined scheduling rules and cannot fully understand each
-pet's individual needs or handle unexpected situations. Different pets have
-different routines, so the same scheduling approach might not be suitable for
-everyone.
+PawPal+ depends on accurate information from the user. If information is
+incorrect or an important task is missing, the schedule might not be
+accurate. It uses predefined scheduling rules and may not account for every
+pet's individual needs, emergencies, or unexpected changes in daily routines.
+Different pets have different routines, so the same scheduling approach might
+not be suitable for everyone.
 
 The scheduler selects tasks by priority and available time. It does not use
 owner preferences or due dates to build the plan, and it warns about some
@@ -44,11 +44,10 @@ state rather than saved in a persistent database.
 
 ### 2. Could your AI be misused, and how would you prevent that?
 
-Users might rely too much on a generated schedule without checking whether it
-suits their pet, especially if the pet needs special care or medical
-attention. PawPal+ is meant to help organize daily tasks, not replace advice
-from a veterinarian. Users should review the schedule and any conflict
-warnings before following it.
+Users might rely too heavily on generated schedules without checking whether
+they meet their pets' needs. Users should review schedules and any conflict
+warnings before following them. PawPal+ helps organize daily tasks and does
+not replace professional veterinary advice.
 
 The application currently shows reasons for selected or skipped tasks and
 displays detected conflict warnings. Its Streamlit form also constrains
@@ -63,12 +62,7 @@ useful future safeguards.
 
 ### 3. What surprised you while testing your AI's reliability?
 
-What surprised me was how important it is to test small details, not just
-whether the program runs. I learned that even a simple scheduling system
-needs to handle situations like conflicting tasks, different priorities, and
-missing information. Testing helped me understand that a program can appear
-to work correctly but still need checks for unusual situations. It also
-showed me why automated tests are useful for making a project more reliable.
+What surprised me was how important it is to test small details, not just whether the program runs. I learned that even a simple scheduling system needs to handle situations like conflicting tasks, different priorities, and missing information. Testing helped me understand that a program can appear to work correctly but still need checks for unusual situations. It also showed me why automated tests are useful for making a project more reliable.
 
 The recorded pytest run reports **26 tests passed and 0 failed**. The tests
 cover model behavior, sorting, filtering, recurrence, plan selection,
@@ -82,24 +76,15 @@ pet. There is no full interactive UI test or formal human-evaluation study.
 
 ### 4. How did you collaborate with AI during this project?
 
-I used AI assistance to help me understand the project requirements, review
-my code, improve documentation, and identify useful test cases. AI also
-helped me understand how to organize the system architecture and explain how
-the components work together. I reviewed suggestions against the project
-instead of assuming they were correct.
+I used AI assistance to help me understand the project requirements, review my code, improve documentation, and identify useful test cases. AI also helped me organize the system architecture and understand how the different components work together.
 
 #### One AI suggestion I accepted
 
-I accepted the suggestion to create a Mermaid system architecture diagram.
-It helped me show how the user interface, scheduling system, and testing
-components connect, making the project easier to understand and explain.
+I accepted the suggestion to create a Mermaid system architecture diagram. It helped me clearly show how the user interface, scheduling system, and testing components connect. This made my project easier to understand and explain.
 
 #### One AI suggestion I modified
 
-I modified the suggestion to include more advanced AI components, such as an
-AI agent or retriever, in the system architecture. PawPal+ currently uses
-rule-based scheduling, so I kept the diagram focused on components that
-actually exist. This kept the diagram simple and accurate.
+I modified the suggestion to include more advanced AI components, such as an AI agent or retriever, in the system architecture. Since my project currently uses rule-based scheduling, I decided to keep the diagram focused on the components that actually exist. I felt this was a better choice because it kept my project simple and accurately represented how it works.
 
 ### 5. What did you learn from this project?
 
