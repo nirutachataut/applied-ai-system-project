@@ -1,0 +1,20 @@
+flowchart TD
+    U[User input<br/>Owner, pet, and care-task details] --> UI[Streamlit interface<br/>app.py]
+    UI --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
+    DM --> SL[Rule-based scheduling logic<br/>Priority and available-time rules]
+    SL --> GS[Generated daily plan<br/>Selected tasks and explanation]
+    SL --> CW[Conflict warnings]
+    GS --> HR[Human review<br/>Review the plan and any warnings]
+    CW --> HR
+    HR -. Adjust input or tasks, then regenerate .-> UI
+
+    AT[Automated tests<br/>tests/test_pawpal.py]
+    AT -. Test models and recurrence .-> DM
+    AT -. Test selection, sorting, and conflicts .-> SL
+
+    classDef ruleBased fill:#e8f1ff,stroke:#3568a8
+    classDef review fill:#fff4d6,stroke:#a87800
+    classDef tests fill:#e8f5e9,stroke:#43834a
+    class SL ruleBased
+    class HR review
+    class AT tests

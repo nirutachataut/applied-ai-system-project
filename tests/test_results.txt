@@ -1,0 +1,50 @@
+Command: python3 -m pytest -v
+
+============================= test session starts ==============================
+platform darwin -- Python 3.11.9, pytest-9.2.0, pluggy-1.7.0 -- /Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/nirutachataut/applied-ai-system-project
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 26 items
+
+tests/test_pawpal.py::test_task_completion PASSED                        [  3%]
+tests/test_pawpal.py::test_task_addition PASSED                          [  7%]
+tests/test_pawpal.py::test_owner_can_add_pet PASSED                      [ 11%]
+tests/test_pawpal.py::test_pet_with_no_tasks_returns_an_empty_task_list PASSED [ 15%]
+tests/test_pawpal.py::test_sort_by_time_places_untimed_tasks_last PASSED [ 19%]
+tests/test_pawpal.py::test_sort_by_time_keeps_equal_time_tasks_in_their_original_order PASSED [ 23%]
+tests/test_pawpal.py::test_sort_by_time_places_invalid_times_last_and_handles_empty_lists PASSED [ 26%]
+tests/test_pawpal.py::test_generate_plan_selects_priority_tasks_that_fit_available_time PASSED [ 30%]
+tests/test_pawpal.py::test_generate_plan_skips_completed_and_non_positive_duration_tasks PASSED [ 34%]
+tests/test_pawpal.py::test_generate_plan_handles_empty_tasks_and_zero_available_time PASSED [ 38%]
+tests/test_pawpal.py::test_generate_plan_does_not_require_a_due_date_or_scheduled_time PASSED [ 42%]
+tests/test_pawpal.py::test_filter_tasks_by_pet_and_completion_status PASSED [ 46%]
+tests/test_pawpal.py::test_filter_tasks_without_filters_returns_all_owner_tasks PASSED [ 50%]
+tests/test_pawpal.py::test_filter_tasks_does_not_return_duplicate_task_references PASSED [ 53%]
+tests/test_pawpal.py::test_filter_tasks_returns_empty_list_when_no_tasks_match PASSED [ 57%]
+tests/test_pawpal.py::test_filter_tasks_returns_empty_list_when_owner_has_no_pets PASSED [ 61%]
+tests/test_pawpal.py::test_daily_task_completion_creates_next_day_occurrence PASSED [ 65%]
+tests/test_pawpal.py::test_weekly_task_completion_creates_next_week_occurrence PASSED [ 69%]
+tests/test_pawpal.py::test_non_recurring_task_completion_creates_no_new_task PASSED [ 73%]
+tests/test_pawpal.py::test_completing_task_twice_does_not_create_duplicate_occurrences PASSED [ 76%]
+tests/test_pawpal.py::test_detect_conflict_for_same_start_time PASSED    [ 80%]
+tests/test_pawpal.py::test_detect_conflict_for_partial_overlap_across_pets PASSED [ 84%]
+tests/test_pawpal.py::test_detect_conflicts_ignores_back_to_back_tasks PASSED [ 88%]
+tests/test_pawpal.py::test_detect_conflicts_ignores_different_dates PASSED [ 92%]
+tests/test_pawpal.py::test_detect_conflicts_ignores_completed_and_invalid_tasks PASSED [ 96%]
+tests/test_pawpal.py::test_detect_conflicts_returns_empty_for_no_tasks_and_deduplicates_pairs PASSED [100%]
+
+============================== 26 passed in 0.01s ==============================
+
+Command: python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
+Output:
+2026-11-17 21:54:28.430 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+Streamlit AppTest startup: PASS (no app exceptions)
+Default owner initialized: Jordan
+
+Command: python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
+Output:
+2026-11-17 21:55:34.727 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+Streamlit AppTest startup: PASS (no app exceptions)
+Default owner initialized: Jordan

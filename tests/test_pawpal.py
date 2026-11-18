@@ -77,6 +77,82 @@ def test_sort_by_time_places_invalid_times_last_and_handles_empty_lists():
     assert scheduler.sort_by_time([]) == []
 
 
+def test_generate_plan_selects_priority_tasks_that_fit_available_time():
+    owner = Owner(name="Alex", available_time=40, preferences=[])
+    pet = Pet(name="Buddy", species="dog")
+    high_priority = Task("Walk Buddy", 30, 3)
+    medium_priority = Task("Medication", 20, 2)
+    low_priority = Task("Play", 10, 1)
+    for task in (high_priority, medium_priority, low_priority):
+        pet.add_task(task)
+    owner.add_pet(pet)
+    scheduler = Scheduler(owner)
+
+    assert scheduler.generate_plan() == [high_priority, low_priority]
+    assert scheduler.explain_plan().splitlines() == [
+        "Selected 'Walk Buddy' (priority 3): it fits in the remaining time.",
+        "Skipped 'Medication' (priority 2): not enough available time.",
+        "Selected 'Play' (priority 1): it fits in the remaining time.",
+    ]
+
+
+def test_generate_plan_skips_completed_and_non_positive_duration_tasks():
+    owner = Owner(name="Alex", available_time=10, preferences=[])
+    pet = Pet(name="Buddy", species="dog")
+    completed_task = Task("Already done", 5, 3)
+    completed_task.mark_completed()
+    zero_duration_task = Task("Invalid duration", 0, 2)
+    negative_duration_task = Task("Negative duration", -5, 1)
+    valid_task = Task("Feed Buddy", 10, 1)
+    for task in (
+        completed_task,
+        zero_duration_task,
+        negative_duration_task,
+        valid_task,
+    ):
+        pet.add_task(task)
+    owner.add_pet(pet)
+    scheduler = Scheduler(owner)
+
+    assert scheduler.generate_plan() == [valid_task]
+    assert scheduler.explain_plan().splitlines() == [
+        "Skipped 'Already done': it is already completed.",
+        "Skipped 'Invalid duration': its duration must be positive.",
+        "Skipped 'Negative duration': its duration must be positive.",
+        "Selected 'Feed Buddy' (priority 1): it fits in the remaining time.",
+    ]
+
+
+def test_generate_plan_handles_empty_tasks_and_zero_available_time():
+    owner = Owner(name="Alex", available_time=0, preferences=[])
+    scheduler = Scheduler(owner)
+
+    assert scheduler.generate_plan() == []
+    assert scheduler.explain_plan() == "No care tasks are available."
+
+    pet = Pet(name="Buddy", species="dog")
+    pet.add_task(Task("Feed Buddy", 10, 3))
+    owner.add_pet(pet)
+
+    assert scheduler.generate_plan() == []
+    assert scheduler.explain_plan().splitlines() == [
+        "Skipped 'Feed Buddy' (priority 3): not enough available time.",
+        "No tasks fit within 0 minutes of available time.",
+    ]
+
+
+def test_generate_plan_does_not_require_a_due_date_or_scheduled_time():
+    owner = Owner(name="Alex", available_time=10, preferences=[])
+    pet = Pet(name="Buddy", species="dog")
+    task_without_schedule = Task("Feed Buddy", 10, 1)
+    pet.add_task(task_without_schedule)
+    owner.add_pet(pet)
+
+    assert task_without_schedule.due_date is None
+    assert task_without_schedule.scheduled_time is None
+    assert Scheduler(owner).generate_plan() == [task_without_schedule]
+
+
 def test_filter_tasks_by_pet_and_completion_status():
     owner = Owner(name="Alex", available_time=60, preferences=[])
     buddy = Pet(name="Buddy", species="dog")
@@ -304,6 +380,9 @@ def test_detect_conflicts_ignores_completed_and_invalid_tasks():
     )
     buddy.add_task(
         Task("Missing time", 30, 2, due_date=date(2025, 1, 1))
+    )
+    buddy.add_task(
+        Task("Missing date", 30, 2, scheduled_time="09:15")
     )
     buddy.add_task(
         Task("Bad time", 30, 2, scheduled_time="25:00", due_date=date(2025, 1, 1))

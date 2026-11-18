@@ -1,380 +1,273 @@
-# PawPal+ (Module 2 Project)
+# PawPal+
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+PawPal+ is a pet-care planning project for CodePath AI110. This repository
+identifies the original coursework as the **Module 2 Project** and documents
+its progression from a class design to a working Streamlit interface; it does
+not separately identify Module 1 or Module 3 deliverables. The app lets an
+owner record pets and care tasks, then creates a priority-based plan that fits
+the owner's available time and explains selected and skipped tasks.
 
-## Scenario
-
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
-
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
-
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
-
-## What you will build
-
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
-
-## Implementation Summary
-
-`Owner` stores the owner's information, availability, preferences, and pets. `Pet` stores its name, species, and care tasks. `Task` represents a care activity with a duration, priority, frequency, and completion status. `Scheduler` creates a daily plan from the owner's tasks.
-
-`Owner.get_all_tasks()` gathers tasks from every pet so the Scheduler can consider them together. The Scheduler sorts tasks by priority and adds tasks that fit within the owner's available time. `main.py` demonstrates this by creating pets and tasks, generating a daily plan, and printing the schedule and explanation.
+PawPal+ helps organize routine care, but it does not provide veterinary advice
+or use an AI model. Its scheduling logic is deterministic and rule-based.
 
 ## Features
 
-- **Owner and pet management:** Enter owner information and add pets in the
-  Streamlit interface. `Owner.add_pet()` stores each `Pet`.
-- **Pet care task management:** Add tasks with a title, duration, priority,
-  due date, scheduled time, and recurrence frequency. Tasks are stored on the
-  selected `Pet` with `Pet.add_task()` and remain available in session state.
-- **Chronological sorting:** `Scheduler.sort_by_time()` sorts valid scheduled
-  times from earliest to latest. Tasks without a valid time appear last.
-- **Task filtering:** `Owner.filter_tasks()` filters by pet name, completed
-  state, or both; the Streamlit task table updates to match the selected
-  filters.
-- **Daily recurrence:** `Pet.complete_task()` creates the next daily task
-  occurrence one day after its due date.
-- **Weekly recurrence:** `Pet.complete_task()` creates the next weekly
-  occurrence seven days after its due date.
-- **Conflict detection:** `Scheduler.detect_conflicts()` detects overlapping
-  pending tasks on the same date. The Streamlit app displays warnings without
-  preventing task entry.
-- **Streamlit task management:** Add pets and tasks, review filtered tasks,
-  mark pending tasks complete, and generate a daily plan with an explanation.
-- **Automated testing:** `tests/test_pawpal.py` covers core object behavior
-  and scheduling algorithms.
+- Enter owner availability and preferences, and add pets and care tasks.
+- Store task duration, priority, due date, scheduled time, recurrence, and
+  completion status.
+- Generate a plan by selecting pending tasks in priority order while they fit
+  the available-time budget; display an explanation for each decision.
+- Review tasks by pet and completion status, mark tasks complete, and create
+  daily or weekly recurring occurrences.
+- Sort the task list by scheduled time and warn when valid pending tasks
+  overlap on the same date.
 
-## Final UML Class Diagram
+Owner preferences are stored but are not used by the scheduler. The generated
+plan does not arrange tasks into time slots or filter them by due date; time
+and date are used for task-list sorting and conflict detection.
 
-The final Mermaid diagram reflects the implemented classes and relationships:
-[diagrams/uml_final.mmd](diagrams/uml_final.mmd).
+## Architecture Overview
 
-## Getting started
+The Streamlit interface in `app.py` collects input and updates the
+`Owner`, `Pet`, and `Task` objects defined in `pawpal_system.py`. When the
+user requests a plan, `Scheduler` applies priority and available-time rules
+and returns the selected tasks with an explanation. The interface also shows
+conflict warnings for the owner to review. The owner remains responsible for
+deciding whether the plan is suitable and can change form values or add tasks
+before generating the plan again.
 
-### Setup
+The pytest suite exercises model behavior and core scheduling methods. It does
+not currently test the Streamlit interface or perform an automatic quality
+evaluation of a generated plan. A Streamlit startup smoke check is described
+in the [test results log](tests/test_results.txt).
+
+```mermaid
+flowchart TD
+    U[User input<br/>Owner, pet, and care-task details] --> UI[Streamlit interface<br/>app.py]
+    UI --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
+    DM --> SL[Rule-based scheduling logic<br/>Priority and available-time rules]
+    SL --> GS[Generated daily plan<br/>Selected tasks and explanation]
+    SL --> CW[Conflict warnings]
+    GS --> HR[Human review<br/>Review the plan and any warnings]
+    CW --> HR
+    HR -. Adjust input or tasks, then regenerate .-> UI
+
+    AT[Automated tests<br/>tests/test_pawpal.py]
+    AT -. Test models and recurrence .-> DM
+    AT -. Test selection, sorting, and conflicts .-> SL
+
+    classDef ruleBased fill:#e8f1ff,stroke:#3568a8
+    classDef review fill:#fff4d6,stroke:#a87800
+    classDef tests fill:#e8f5e9,stroke:#43834a
+    class SL ruleBased
+    class HR review
+    class AT tests
+```
+
+The standalone Mermaid source is [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd).
+The class diagram is [diagrams/uml_final.mmd](diagrams/uml_final.mmd).
+
+## Setup and Run
+
+From the project root, create and activate a virtual environment, then install
+the declared dependencies:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-### Suggested workflow
-
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
-
-### Run the Application
-
-Install the declared dependencies using the setup commands above, then start
-the terminal demo or Streamlit interface:
-
-```bash
-python main.py
-streamlit run app.py
-```
-
-Run the automated tests with:
-
-```bash
-python -m pytest
-```
-
-## 🖥️ Sample Output
-
-The following is the terminal output from running `python main.py`:
-
-```
-Recurring Tasks
----------------
-Completed 'Feeding Buddy'; next due: 2025-01-02
-Completing it again creates another task: False
-Completed 'Grooming Luna'; next due: 2025-01-08
-Tasks Sorted by Scheduled Time
--------------------------------
-07:00 (No due date) - Walking Buddy
-08:30 (2025-01-01) - Feeding Buddy
-08:30 (2025-01-02) - Feeding Buddy
-09:00 (2025-01-02) - Walk Buddy
-09:00 (2025-01-02) - Give Buddy Medicine
-09:15 (2025-01-01) - Grooming Luna
-09:15 (2025-01-02) - Feed Luna
-09:15 (2025-01-08) - Grooming Luna
-09:30 (2025-01-02) - Brush Luna
-
-Tasks Filtered by Pet Name (Buddy)
------------------------------------
-Feeding Buddy
-Walking Buddy
-Walk Buddy
-Give Buddy Medicine
-Feeding Buddy
-
-Tasks Filtered by Pet Name (Luna)
-----------------------------------
-Grooming Luna
-Feed Luna
-Brush Luna
-Grooming Luna
-
-Completed Tasks
----------------
-Feeding Buddy
-Grooming Luna
-
-Pending Tasks
--------------
-Walking Buddy
-Walk Buddy
-Give Buddy Medicine
-Feeding Buddy
-Feed Luna
-Brush Luna
-Grooming Luna
-Today's Schedule
-----------------
-Walking Buddy - 30 minutes (priority 3)
-Walk Buddy - 30 minutes (priority 3)
-
-Total scheduled time: 60 minutes
-Owner's available time: 60 minutes
-
-Plan explanation:
-Skipped 'Feeding Buddy': it is already completed.
-Selected 'Walking Buddy' (priority 3): it fits in the remaining time.
-Selected 'Walk Buddy' (priority 3): it fits in the remaining time.
-Skipped 'Feeding Buddy' (priority 3): not enough available time.
-Skipped 'Give Buddy Medicine' (priority 2): not enough available time.
-Skipped 'Grooming Luna': it is already completed.
-Skipped 'Feed Luna' (priority 2): not enough available time.
-Skipped 'Grooming Luna' (priority 2): not enough available time.
-Skipped 'Brush Luna' (priority 1): not enough available time.
-
-Scheduling Conflict Warnings
-----------------------------
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Give Buddy Medicine (09:00-09:05).
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).
-```
-
-## Testing PawPal+
-
-### How to Run Tests
-
-From the project root, run the full automated test suite with:
-
-```bash
-python -m pytest
-```
-
-### Test Coverage
-
-The tests in `tests/test_pawpal.py` cover:
-
-- Owner pet addition, Pet task addition, task completion state, and empty owners
-  or pets.
-- Chronological sorting, out-of-order and equal times, missing or invalid
-  times, empty lists, and preserving the input list.
-- Filtering by pet and completion status, combined filters, no filters,
-  duplicate references, and no matching tasks.
-- Daily and weekly recurring tasks, due-date calculations, preserved task
-  details, non-recurring tasks, and repeated completion.
-- Conflict warnings for same-time and overlapping tasks, including different
-  pets; back-to-back tasks, different dates, completed tasks, invalid or
-  missing scheduling information, empty owners, and duplicate references.
-
-### Successful Test Results
-
-Actual output from `python -m pytest`:
-
-```text
-============================= test session starts ==============================
-platform darwin -- Python 3.14.6, pytest-9.1.1, pluggy-1.7.0
-rootdir: /Users/nirutachataut/ai110-module2show-pawpal-starter
-configfile: pytest.ini
-plugins: anyio-4.15.1
-collected 22 items
-
-tests/test_pawpal.py ......................                              [100%]
-
-============================== 22 passed in 0.02s ==============================
-```
-
-### Confidence Level
-
-Confidence Level: 4/5 stars
-
-All 22 backend tests pass and cover the main scheduling behaviors and listed
-edge cases. A Streamlit `AppTest` smoke check also confirmed the app renders
-and initializes the Owner in session state. This is not a full interactive
-browser test, and the tests do not cover every real-world scheduling case
-(including conflicts that cross midnight), so the result is not rated 5/5.
-
-## Smarter Scheduling
-
-The scheduling features are implemented in `pawpal_system.py` and demonstrated
-by `main.py`.
-
-### 1. Sorting by Time
-
-`Scheduler.sort_by_time(tasks)` returns a new list in chronological order.
-Valid zero-padded 24-hour times (`HH:MM`) come first; missing or invalid times
-are placed at the end. The original list is not changed. The existing
-`Scheduler.sort_tasks(tasks)` method continues to order tasks by priority.
-
-```python
-sorted_tasks = scheduler.sort_by_time(owner.get_all_tasks())
-```
-
-### 2. Filtering Tasks
-
-`Owner.filter_tasks(pet_name=None, completed=None)` returns matching task
-objects without changing the owner's tasks. Use `completed=True` for completed
-tasks, `completed=False` for pending tasks, or provide both filters together.
-With no filters, it returns all tasks once, even if a task reference appears
-more than once in the owner's pets.
-
-```python
-buddy_pending = owner.filter_tasks(pet_name="Buddy", completed=False)
-completed_tasks = owner.filter_tasks(completed=True)
-```
-
-### 3. Recurring Tasks
-
-`Pet.complete_task(task, completed_on=None)` marks the task complete and keeps
-it in that pet's history. A daily task produces a new pending task due one day
-after its due date; a weekly task produces one due seven days later. The new
-task keeps the title, duration, priority, scheduled time, and frequency.
-Non-recurring tasks do not repeat, and completing an already-completed task
-does not create a duplicate. `completed_on` supplies the reference date only
-when the original task has no due date.
-
-```python
-next_occurrence = buddy.complete_task(task)
-```
-
-### 4. Conflict Detection
-
-`Scheduler.detect_conflicts()` checks pending tasks belonging to all of the
-owner's pets. It returns a warning for each pair whose scheduled intervals
-overlap on the same due date. Tasks with missing or invalid dates or times,
-and tasks with non-positive durations, are ignored. Back-to-back tasks are not
-conflicts, and warnings do not change task times or the generated plan.
-
-```python
-warnings = scheduler.detect_conflicts()
-for warning in warnings:
-    print(warning)
-```
-
-### Run the Project
-
-Run the terminal demonstration:
-
-```bash
-python main.py
-```
-
-Launch the Streamlit interface:
+Start the Streamlit interface:
 
 ```bash
 streamlit run app.py
+```
+
+Run the command-line demonstration:
+
+```bash
+python main.py
 ```
 
 Run the automated tests:
 
 ```bash
-python -m pytest
+python -m pytest -v
 ```
 
-The terminal demo shows the sorted tasks, Buddy and Luna filters, daily and
-weekly recurrence, the generated schedule, and conflict warnings. Example
-output excerpts from `python main.py`:
+The commands above use `python` after activating the virtual environment. In
+the validation environment for this repository, the executable was named
+`python3`, so the recorded test run used `python3 -m pytest -v`.
+
+## Sample Interactions
+
+These examples call the same `Owner`, `Pet`, `Task`, and `Scheduler` classes
+used by the application. The outputs below were produced by running the
+examples against the project code.
+
+### 1. Normal scheduling
+
+**Input:** Riley has 45 minutes for Mochi's feeding and play tasks.
+
+```python
+from pawpal_system import Owner, Pet, Scheduler, Task
+
+owner = Owner("Riley", 45, [])
+pet = Pet("Mochi", "cat")
+pet.add_task(Task("Feed Mochi", 15, 3))
+pet.add_task(Task("Play with Mochi", 20, 2))
+owner.add_pet(pet)
+
+scheduler = Scheduler(owner)
+print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
+print(scheduler.explain_plan())
+```
+
+**Observed output:**
 
 ```text
-Recurring Tasks
----------------
-Completed 'Feeding Buddy'; next due: 2025-01-02
-Completing it again creates another task: False
-Completed 'Grooming Luna'; next due: 2025-01-08
+Plan: Feed Mochi, Play with Mochi
+Selected 'Feed Mochi' (priority 3): it fits in the remaining time.
+Selected 'Play with Mochi' (priority 2): it fits in the remaining time.
 ```
+
+### 2. Priority with limited time
+
+**Input:** Jordan has 35 minutes. A 30-minute walk has priority 3, medication
+takes 10 minutes at priority 2, and play takes 5 minutes at priority 1.
+
+```python
+from pawpal_system import Owner, Pet, Scheduler, Task
+
+owner = Owner("Jordan", 35, [])
+pet = Pet("Buddy", "dog")
+pet.add_task(Task("Walk Buddy", 30, 3))
+pet.add_task(Task("Medication", 10, 2))
+pet.add_task(Task("Play with Buddy", 5, 1))
+owner.add_pet(pet)
+
+scheduler = Scheduler(owner)
+print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
+print(scheduler.explain_plan())
+```
+
+**Observed output:**
 
 ```text
-Tasks Filtered by Pet Name (Luna)
-----------------------------------
-Grooming Luna
-Feed Luna
-Brush Luna
-Grooming Luna
+Plan: Walk Buddy, Play with Buddy
+Selected 'Walk Buddy' (priority 3): it fits in the remaining time.
+Skipped 'Medication' (priority 2): not enough available time.
+Selected 'Play with Buddy' (priority 1): it fits in the remaining time.
 ```
+
+### 3. Overlapping scheduled tasks
+
+**Input:** Buddy's 09:00 walk lasts 30 minutes and overlaps with a 09:15
+feeding task on the same date.
+
+```python
+from datetime import date
+from pawpal_system import Owner, Pet, Scheduler, Task
+
+owner = Owner("Alex", 60, [])
+pet = Pet("Buddy", "dog")
+pet.add_task(Task(
+    "Walk Buddy", 30, 3, scheduled_time="09:00", due_date=date(2025, 1, 1)
+))
+pet.add_task(Task(
+    "Feed Buddy", 10, 2, scheduled_time="09:15", due_date=date(2025, 1, 1)
+))
+owner.add_pet(pet)
+
+scheduler = Scheduler(owner)
+print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
+print("Warnings:")
+for warning in scheduler.detect_conflicts():
+    print(warning)
+```
+
+**Observed output:**
 
 ```text
-Scheduling Conflict Warnings
-----------------------------
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Give Buddy Medicine (09:00-09:05).
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).
+Plan: Walk Buddy, Feed Buddy
+Warnings:
+Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Buddy (09:15-09:25).
 ```
 
-## Demo Walkthrough
+Conflict detection reports an overlap but does not remove tasks from the plan
+or move them to different times. The user must review the warning.
 
-1. Start the interface from the project folder with `streamlit run app.py`.
-2. Enter the owner's name, available time, and preferences in the owner
-   information fields.
-3. Enter `Buddy` as the pet name, choose `dog`, and select **Add pet**.
-4. Enter `Luna` as the pet name, choose `cat`, and select **Add pet**.
-5. Add a `Feeding Buddy` task, choose Buddy, and set its duration, priority,
-   due date, and scheduled time.
-6. Add a `Walking Luna` task and choose Luna. Set a time that overlaps the
-   feeding task to see conflict detection in the task/schedule view.
-7. Review the saved task table, which is sorted chronologically; each row
-   includes pet, due date, time, duration, priority, frequency, and status.
-8. Use **Filter by pet** and **Filter by status** to show all tasks, one pet's
-   tasks, pending tasks, completed tasks, or a combination.
-9. Select a pending daily or weekly task and click **Complete selected task**.
-   Its next occurrence is shown in the table with the next due date.
-10. Add another task at an overlapping time, then review the `st.warning()`
-    conflict message. Task entry remains enabled.
-11. Select **Generate schedule** to see the tasks selected within the owner's
-    available time and the Scheduler's explanation.
+## Design Decisions and Limitations
 
-The terminal demo can be run separately with `python main.py`. These excerpts
-are from its actual output:
+- **Python data models:** `Owner`, `Pet`, and `Task` keep the domain objects
+  simple and make the scheduling behavior testable without starting the UI.
+- **Streamlit interface:** Streamlit provides a small interactive interface
+  directly connected to those Python objects. State is held in Streamlit
+  session state; there is no persistent database.
+- **Greedy priority scheduling:** The scheduler sorts by descending priority
+  and adds each positive-duration pending task if it fits the remaining time.
+  This is easy to explain, but it is not a global optimizer: a high-priority
+  long task can prevent a combination of lower-priority tasks from fitting.
+- **Separate conflict checking:** Overlap warnings compare scheduled intervals
+  for the same date. They alert the owner but do not change the generated
+  plan. Cross-midnight overlaps are not detected.
+- **No AI model:** The system uses explicit rules, not a trained model,
+  generative agent, retriever, or evaluator. Preferences are collected but
+  do not influence task selection.
+- **Input limitations:** The Streamlit form restricts duration to positive
+  values and times to its time picker. Direct Python callers can still create
+  invalid task values; the scheduler skips non-positive durations and the
+  conflict checker ignores invalid or missing scheduling details.
 
-```text
-Completed 'Feeding Buddy'; next due: 2025-01-02
-Completing it again creates another task: False
-Completed 'Grooming Luna'; next due: 2025-01-08
+## Reliability and Evaluation
 
-Tasks Sorted by Scheduled Time
--------------------------------
-07:00 (No due date) - Walking Buddy
-08:30 (2025-01-01) - Feeding Buddy
-08:30 (2025-01-02) - Feeding Buddy
-09:00 (2025-01-02) - Walk Buddy
+Automated testing is the project's reliability method. The suite in
+`tests/test_pawpal.py` covers model behavior, sorting, filtering, recurrence,
+plan selection, priority/time-budget decisions, and overlap detection. It
+includes empty schedules, zero time, completed and non-positive-duration
+tasks, missing scheduling details, invalid times, back-to-back tasks, and
+overlaps across pets.
 
-Tasks Filtered by Pet Name (Luna)
-----------------------------------
-Grooming Luna
-Feed Luna
-Brush Luna
-Grooming Luna
+Final run: **26 tests passed, 0 failed** with `python3 -m pytest -v`. During
+test development, one new assertion initially expected the invalid-duration
+explanation to include a priority label; the observed implementation omits
+that label for this case. The assertion was corrected to match the existing
+behavior, and the final full run passed. No scheduling implementation change
+was needed.
 
-Scheduling Conflict Warnings
-----------------------------
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Give Buddy Medicine (09:00-09:05).
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).
-```
+| Test input | Evaluation criteria | Actual result | Pass/Fail |
+|---|---|---|---|
+| 40-minute budget; tasks of 30 minutes/priority 3, 20/priority 2, and 10/priority 1 | Select tasks in priority order without exceeding the budget | Selected the 30-minute priority-3 task, skipped the 20-minute task, then selected the 10-minute task; total 40 minutes | Pass |
+| Completed task, zero- and negative-duration tasks, plus a valid 10-minute task | Exclude completed/invalid tasks and include a task that fits | Only the valid 10-minute task was selected; completed and non-positive tasks were explained as skipped | Pass |
+| No tasks; then a 10-minute task with zero available minutes | Handle an empty schedule and no-fit budget without an exception | Empty input returned no plan and “No care tasks are available”; zero minutes returned no plan with a no-fit explanation | Pass |
+| Positive-duration task without a due date or scheduled time | Generate a plan when optional scheduling details are absent | The task was selected; due date and scheduled time are not required by plan generation | Pass |
+| Two pets have tasks on the same date, one starting at 09:00 for 30 minutes and one at 09:15 for 10 minutes | Detect partial overlap across pets | Returned `Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).` | Pass |
+| Tasks have missing or invalid times, are completed, or have zero duration | Ignore ineligible tasks during conflict checks | No conflict warning was returned for the tested invalid/ineligible inputs | Pass |
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+The command output is saved in [tests/test_results.txt](tests/test_results.txt).
+An `AppTest` startup smoke check also completed without app exceptions and
+confirmed that the default owner was initialized. Streamlit emitted its
+expected bare-mode `ScriptRunContext` warning during that check. This is not a
+full interactive browser test. No formal human-evaluation study was performed;
+the interface presents plans and warnings for the owner to inspect.
+
+Remaining gaps include automated UI interaction tests, tests for
+cross-midnight conflicts, and broader validation of malformed direct API
+inputs. The plan generator does not use due dates or scheduled times, and the
+application has no automatic evaluator or AI model. These results demonstrate
+tested deterministic behavior, not AI accuracy or suitability of pet-care
+advice.
+
+## Project Reflection
+
+The existing [reflection](reflection.md) describes the design progression
+from four focused classes to the Streamlit interface, and the trade-off
+between a readable pairwise conflict check and a more complex optimization.
+It also records the importance of reviewing AI assistance and running tests
+rather than accepting generated code without verification. Owner preferences
+and richer scheduling constraints remain possible improvements.
+
+The graded personal AI-collaboration and responsible-AI reflection is kept in
+[model_card.md](model_card.md); personal details not documented in the
+existing reflection are clearly marked for the author to complete.
