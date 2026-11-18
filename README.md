@@ -1,14 +1,13 @@
 # PawPal+
 
-PawPal+ is a pet-care planning project for CodePath AI110. This repository
-identifies the original coursework as the **Module 2 Project** and documents
-its progression from a class design to a working Streamlit interface; it does
-not separately identify Module 1 or Module 3 deliverables. The app lets an
-owner record pets and care tasks, then creates a priority-based plan that fits
-the owner's available time and explains selected and skipped tasks.
-
-PawPal+ helps organize routine care, but it does not provide veterinary advice
-or use an AI model. Its scheduling logic is deterministic and rule-based.
+PawPal+ is the pet-care planning project for CodePath AI110, and this
+repository identifies the implementation as the **Module 2 Project**. Its
+original goal was to help pet owners track care tasks and create a daily plan
+from task priorities and available time, with an explanation of the
+selections. The current Streamlit app also manages task completion and flags
+scheduling conflicts using deterministic rules; it does not use a trained or
+generative AI model, and the repository does not separately describe Modules
+1 and 3.
 
 ## Features
 
@@ -48,9 +47,10 @@ flowchart TD
     DM --> SL[Rule-based scheduling logic<br/>Priority and available-time rules]
     SL --> GS[Generated daily plan<br/>Selected tasks and explanation]
     SL --> CW[Conflict warnings]
-    GS --> HR[Human review<br/>Review the plan and any warnings]
-    CW --> HR
-    HR -. Adjust input or tasks, then regenerate .-> UI
+    GS --> UI
+    CW --> UI
+    UI --> HR[Human review<br/>Review the plan and any warnings]
+    HR -. Adjust form inputs or add tasks, then regenerate .-> UI
 
     AT[Automated tests<br/>tests/test_pawpal.py]
     AT -. Test models and recurrence .-> DM
