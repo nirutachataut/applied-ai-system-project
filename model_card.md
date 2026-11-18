@@ -78,15 +78,17 @@ pet. There is no full interactive UI test or formal human-evaluation study.
 
 ### 4. How did you collaborate with AI during this project?
 
-During this project, I used GitHub Copilot and Google Gemini to help me develop PawPal+. Copilot helped me write and review code, debug problems, improve testing, and organize my project. I also used Gemini to understand concepts better, explore ideas, and get additional suggestions.
+During this project, I used GitHub Copilot and Google Gemini to help me develop PawPal+. Copilot helped me write and review code, debug problems, and improve testing and documentation. I used Gemini to understand concepts better and explore different ideas. Both tools were helpful, but I learned that I still need to review their suggestions and make my own decisions.
 
 #### One AI suggestion I accepted
 
-One AI suggestion I accepted was creating a Mermaid system architecture diagram. It helped me understand how the different parts of my project connect and made the system easier to explain.
+One AI suggestion I accepted was creating a Mermaid system architecture diagram. It helped me understand how the different components of my project connect and made the system easier to explain.
 
 #### One AI suggestion I modified
 
-One suggestion I modified was including advanced AI components that were not actually part of my application. Instead, I kept the diagram focused on the scheduling system and existing features so it accurately represents my project.
+One suggestion I modified was including advanced AI components that were not actually part of my application. Instead, I kept the architecture focused on the existing scheduling system so that it accurately represents how my project works.
+
+What surprised me while testing was how important it is to check small details instead of just checking whether the program runs. I learned that task conflicts, priorities, and missing information need careful testing.
 
 This project taught me that AI tools can be very helpful during development, but I still need to review their suggestions and make decisions myself.
 

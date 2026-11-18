@@ -1,4 +1,4 @@
-Validation note: An initial run after adding the Streamlit test had 26 passed and 1 failed because its relative app.py path resolved to tests/app.py. The test now resolves app.py from the repository root; the final run is below.
+Validation note: An earlier AppTest attempt used a relative app.py path and failed because Streamlit resolved it as tests/app.py. The test now resolves the repository-root app.py; final results follow.
 
 $ python -m pytest -v
 /bin/bash: python: command not found
@@ -42,12 +42,12 @@ tests/test_pawpal.py::test_detect_conflicts_ignores_completed_and_invalid_tasks 
 tests/test_pawpal.py::test_detect_conflicts_returns_empty_for_no_tasks_and_deduplicates_pairs PASSED [ 96%]
 tests/test_pawpal.py::test_streamlit_app_rejects_blank_task_title PASSED [100%]
 
-============================== 27 passed in 0.30s ==============================
+============================== 27 passed in 0.32s ==============================
 
 Python 3 pytest exit status: 0
 
 $ python3 -c "from streamlit.testing.v1 import AppTest; app=AppTest.from_file('app.py').run(); assert not app.exception, app.exception; assert app.session_state['owner'].name == 'Jordan'; print('Streamlit AppTest startup: PASS (no app exceptions)'); print('Default owner initialized: Jordan')"
-2026-11-18 00:17:20.281 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-11-18 00:23:57.415 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
 Streamlit AppTest startup: PASS (no app exceptions)
 Default owner initialized: Jordan
 AppTest exit status: 0
