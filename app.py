@@ -2,6 +2,7 @@
 
 from datetime import date, time
 from pathlib import Path
+import os
 
 import streamlit as st
 
@@ -27,9 +28,13 @@ st.set_page_config(
 def get_gemini_key() -> str | None:
     """Read the Gemini key from Streamlit secrets or environment variables."""
     try:
-        return str(st.secrets["GEMINI_API_KEY"])
+        secret_key = st.secrets.get("GEMINI_API_KEY")
+        if isinstance(secret_key, str) and secret_key.strip():
+            return secret_key.strip()
     except Exception:
-        return None
+        pass
+    environment_key = os.getenv("GEMINI_API_KEY")
+    return environment_key.strip() if environment_key else None
 
 
 def build_pet_context(owner: Owner) -> str | None:

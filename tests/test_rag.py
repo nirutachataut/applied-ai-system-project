@@ -86,6 +86,16 @@ def test_missing_api_credentials_produce_understandable_error(monkeypatch):
         resolve_api_key()
 
 
+def test_api_key_supports_environment_variable(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-environment-key")
+    assert resolve_api_key() == "test-environment-key"
+
+
+def test_explicit_api_key_takes_precedence(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-environment-key")
+    assert resolve_api_key("test-explicit-key") == "test-explicit-key"
+
+
 def test_api_failure_does_not_crash_answer_pipeline(retriever):
     def failed_model(prompt):
         raise ModelResponseError("AI generation failed due to an API error.")

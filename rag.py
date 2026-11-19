@@ -304,6 +304,19 @@ def call_gemini(prompt: str, api_key: str | None = None) -> str:
             raise ModelResponseError(
                 "AI generation timed out. Please try again."
             ) from exc
+        if (
+            "api key" in error_text
+            or "api_key" in error_text
+            or "unauthenticated" in error_text
+            or "permission denied" in error_text
+            or "401" in error_text
+            or "403" in error_text
+        ):
+            LOGGER.warning("Gemini API authentication failed")
+            raise ModelResponseError(
+                "The Gemini API key is missing or invalid. "
+                "Please check GEMINI_API_KEY in Streamlit secrets or your environment."
+            ) from exc
         if "rate" in error_text or "429" in error_text or "resource exhausted" in error_text:
             LOGGER.warning("Gemini API rate limit reached")
             raise ModelResponseError(
