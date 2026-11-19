@@ -1,0 +1,52 @@
+[
+  {
+    "question": "How often should I walk my dog?",
+    "pet_species": "dog",
+    "expected_document": "dog_care.md"
+  },
+  {
+    "question": "What exercise routine is appropriate for a dog?",
+    "pet_species": "dog",
+    "expected_document": "exercise_enrichment.md"
+  },
+  {
+    "question": "What daily care does a cat need?",
+    "pet_species": "cat",
+    "expected_document": "cat_care.md"
+  },
+  {
+    "question": "How can I enrich my indoor cat?",
+    "pet_species": "cat",
+    "expected_document": "exercise_enrichment.md"
+  },
+  {
+    "question": "How should I provide fresh water and balanced food?",
+    "pet_species": "dog",
+    "expected_document": "feeding_hydration.md"
+  },
+  {
+    "question": "How should I groom my pet safely?",
+    "pet_species": "cat",
+    "expected_document": "grooming_hygiene.md"
+  },
+  {
+    "question": "How do I plan a realistic daily pet-care routine?",
+    "pet_species": "dog",
+    "expected_document": "daily_planning.md"
+  },
+  {
+    "question": "What preventive veterinary care should pets receive?",
+    "pet_species": "dog",
+    "expected_document": "preventive_care.md"
+  },
+  {
+    "question": "How should I monitor my cat's dental and parasite prevention?",
+    "pet_species": "cat",
+    "expected_document": "preventive_care.md"
+  },
+  {
+    "question": "How can I provide mental stimulation and safe exercise?",
+    "pet_species": "dog",
+    "expected_document": "exercise_enrichment.md"
+  }
+]

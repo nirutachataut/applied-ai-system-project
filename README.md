@@ -1,77 +1,85 @@
-# PawPal+
+# PawPal+ — AI-Powered Pet Care Planner
 
-PawPal+ is a Python and Streamlit pet-care planning application created for
-CodePath AI110. It began as a Module 2 project for representing pets and care
-tasks and building an explained daily schedule. It now includes local
-retrieval-augmented generation (RAG) for general pet-care questions.
+PawPal+ is a Python and Streamlit application for pet-care planning and
+retrieval-grounded general pet-care guidance. It began as the original
+CodePath AI110 Module 2 project for representing owners, pets, and care tasks
+and creating an explained priority-based daily schedule.
 
-## Project Goals
+The final AI110 project preserves that work and adds a **PawPal+ AI Pet Care
+Assistant**. The assistant validates questions, searches local pet-care
+references with TF-IDF, adds relevant passages to a Gemini prompt, returns a
+general answer, and shows the supporting sources for human review.
 
-The original PawPal+ goals were to:
+## Main Features
 
-- Represent owners, pets, and care tasks.
-- Prioritize pending tasks and respect an available-time budget.
-- Explain scheduling decisions.
-- Detect overlapping scheduled intervals.
-- Support recurrence, filtering, sorting, and task completion.
+- Dashboard metrics for pets, pending tasks, and available time.
+- Multiple pets and owner availability/preferences.
+- Care tasks with duration, priority, due date, scheduled time, and recurrence.
+- Priority and available-time planning with written explanations.
+- Same-date scheduling conflict warnings.
+- Task filtering, sorting, completion, and recurring occurrences.
+- A tabbed Streamlit interface for Dashboard, Pets & Tasks, Schedule, and AI
+  Assistant.
+- Genuine local RAG using TF-IDF/cosine similarity.
+- Gemini generation grounded in retrieved context.
+- Source attribution and expandable retrieved passages.
+- Missing-key, missing-file, irrelevant-question, timeout, rate-limit, and
+  invalid-response handling.
+- Mocked automated model tests that require no paid API usage.
 
-The final project keeps those deterministic features and adds an optional
-**AI Pet Care Assistant** that searches a local knowledge base before asking a
-generative model for an answer.
+The deterministic scheduler remains the final authority for scheduling.
+AI-generated suggestions never modify the schedule automatically.
 
-## What RAG Adds
-
-Retrieval-augmented generation (RAG) first searches local reference material,
-adds relevant passages to the model prompt, and asks the model to answer only
-from that context. It is useful for PawPal+ because general pet-care guidance
-can change over time, and source attribution makes answers more reviewable than
-answers generated from model memory alone.
-
-The implementation in `rag.py`:
-
-1. Loads Markdown documents from `knowledge_base/`.
-2. Splits each document into searchable chunks.
-3. Uses TF-IDF and cosine similarity to retrieve relevant passages.
-4. Adds those passages and user-provided pet/task context to a Gemini prompt.
-5. Returns an answer and source URLs.
-6. Communicates missing sources, missing credentials, irrelevant questions,
-   and model failures without replacing the scheduler.
-
-Retrieved context materially changes the model input: each answer prompt
-contains passages, document titles, source URLs, and explicit instructions not
-to diagnose or prescribe treatment. The model receives no claim that is outside
-the retrieved context.
-
-## Features
-
-- Owner availability and preference entry.
-- Multiple pets and species selection.
-- Care-task creation with duration, priority, due date, scheduled time, and
-  recurrence.
-- Priority and available-time scheduling with written explanations.
-- Same-date scheduling conflict detection.
-- Pet/status filtering, sorting, completion, and recurring-task creation.
-- AI assistant question validation.
-- Local TF-IDF document retrieval and source attribution.
-- Gemini runtime model integration with environment or Streamlit secret keys.
-- Friendly handling of missing credentials and model/API errors.
-
-## Architecture
-
-The Streamlit interface in `app.py` updates the `Owner`, `Pet`, and `Task`
-models in `pawpal_system.py`. `Scheduler` remains independent of API credentials
-and produces the deterministic daily plan and conflict warnings.
-
-The RAG workflow is separate:
+## RAG Architecture
 
 ```text
-Pet owner -> Streamlit question -> validation -> TF-IDF retriever
--> knowledge-base chunks -> retrieved context -> Gemini prompt
--> grounded answer -> source display -> human review
+Pet owner
+  -> Streamlit interface
+  -> question validation
+  -> TF-IDF retriever
+  -> local Markdown knowledge base
+  -> relevant document chunks
+  -> prompt with retrieved context and optional pet context
+  -> Gemini 2.5 Flash
+  -> grounded answer
+  -> source attribution
+  -> human review
 ```
 
-The editable Mermaid architecture diagram is
+RAG is useful here because it gives the assistant a bounded, inspectable
+source set instead of relying only on model memory. Retrieved passages are
+included directly in the prompt and displayed beside the answer.
+
+The editable architecture diagram is
 [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd).
+
+```mermaid
+flowchart LR
+    Owner[Pet owner] --> UI[Streamlit]
+    UI --> Validate[Question validation]
+    Validate --> Retrieve[TF-IDF retrieval]
+    Retrieve --> KB[Knowledge base]
+    KB --> Context[Retrieved context]
+    Context --> Gemini[Gemini API]
+    Gemini --> Answer[Grounded answer]
+    Answer --> Sources[Sources]
+    Sources --> Review[Human review]
+```
+
+## Knowledge Base
+
+The `knowledge_base/` directory contains Markdown references for:
+
+- Dog daily care
+- Cat daily care
+- Feeding and hydration
+- Exercise and enrichment
+- Grooming and hygiene
+- Daily pet-care planning
+- General preventive care
+
+Each document records an original public source URL. The project does not
+fabricate quotations or veterinary claims.
 
 ## Installation
 
@@ -85,29 +93,33 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
-## API Configuration
+Required runtime packages include Streamlit, scikit-learn, pytest, and
+`google-genai`.
 
-The runtime model is Google Gemini. Create a Gemini API key, then set:
+## Gemini API Configuration
+
+Create a Gemini API key in Google AI Studio or the appropriate Gemini developer
+console. Set it in the shell:
 
 ```bash
 export GEMINI_API_KEY="your-key"
 ```
 
-Streamlit can also read `.streamlit/secrets.toml`:
+Alternatively, create `.streamlit/secrets.toml`:
 
 ```toml
 GEMINI_API_KEY = "your-key"
 ```
 
-Do not commit `.env`, `.streamlit/secrets.toml`, or an API key. A sample
-environment file is [.env.example](.env.example).
+Never commit `.env`, `.streamlit/secrets.toml`, or an API key.
+[.env.example](.env.example) shows the environment-variable name.
 
-If no key is configured, scheduling and all deterministic features remain
-available. The AI section reports that generation is unavailable.
+Without a key, the scheduler and original PawPal+ features remain usable.
+The AI Assistant explains that generation is unavailable.
 
-## Launch
+## Running PawPal+
 
-Run the Streamlit application:
+Run Streamlit:
 
 ```bash
 streamlit run app.py
@@ -119,136 +131,179 @@ Run the command-line demonstration:
 python3 main.py
 ```
 
-Run all tests:
+## Automated Tests
+
+Run the complete suite:
 
 ```bash
 python3 -m pytest -v
 ```
 
-## Sample RAG Interactions
+Run only RAG tests:
 
-These examples execute the real retrieval and prompt pipeline with a mock model
-call. They are included to demonstrate the integrated flow because no Gemini API
-key was available in the development environment. They are **not live Gemini
-responses**.
+```bash
+python3 -m pytest -v tests/test_rag.py
+```
+
+Run retrieval evaluation:
+
+```bash
+python3 -m pytest -v tests/test_rag.py::test_retrieval_evaluation_dataset_reports_hit_at_3
+```
+
+The complete suite uses mocked model responses. No Gemini API usage or paid
+service is required for test execution.
+
+## Actual Retrieval Interaction Examples
+
+These examples demonstrate actual local retrieval executed in this repository.
+They are not claims of a live Gemini response. The model portion was not
+executed because no Gemini key was available during validation.
 
 ### 1. Dog walking
 
-**Input:**
+**Input**
 
 ```text
 How often should I walk my dog?
 ```
 
-**Retrieved source:**
-
-- [Dog Care Basics](https://www.avma.org/resources-tools/pet-owners/petcare/dog-care)
-
-**Mocked model output produced by the test pipeline:**
+**Actual top retrieved source**
 
 ```text
-Walking needs vary by the individual dog. The retrieved guidance says to
-provide physical activity appropriate to age, health, size, and breed, and to
-ask a veterinarian for an individual plan.
+Title: Dog Care Basics
+Source: https://www.avma.org/resources-tools/pet-owners/petcare/dog-care
+```
+
+**Mocked model output for prompt-pipeline testing**
+
+```text
+Walking needs vary by the individual dog. The retrieved guidance says
+physical activity should reflect age, health, size, and breed, and to ask a
+veterinarian for an individual plan.
 ```
 
 ### 2. Cat care
 
-**Input:**
+**Input**
 
 ```text
 What are important daily care activities for cats?
 ```
 
-**Retrieved source:**
-
-- [Cat Care Basics](https://www.avma.org/resources-tools/pet-owners/petcare/cat-care)
-
-**Mocked model output produced by the test pipeline:**
+**Actual top retrieved source**
 
 ```text
-The retrieved guidance highlights fresh water, species-appropriate feeding,
+Title: Cat Care Basics
+Source: https://www.avma.org/resources-tools/pet-owners/petcare/cat-care
+```
+
+**Mocked model output for prompt-pipeline testing**
+
+```text
+The retrieved guidance highlights fresh water, appropriate feeding,
 regular litter-area care, enrichment, rest, and routine veterinary care.
 ```
 
 ### 3. Mental stimulation
 
-**Input:**
+**Input**
 
 ```text
 How can I keep my pet mentally stimulated?
 ```
 
-**Retrieved source:**
-
-- [Exercise and Mental Enrichment](https://www.rspcapetinsurance.org.au/pet-care/dogs-and-cats/exercise-and-mental-stimulation)
-
-**Mocked model output produced by the test pipeline:**
+**Actual top retrieved source**
 
 ```text
-The retrieved guidance suggests supervised play, training games, food puzzles,
-rotating toys, and climbing opportunities for cats, with activities adjusted
-to age, mobility, health, and preferences.
+Title: Exercise and Mental Enrichment
+Source: https://www.rspcapetinsurance.org.au/pet-care/dogs-and-cats/exercise-and-mental-stimulation
 ```
 
-The live model can change wording, but the application still supplies the same
-retrieved passages and source URLs in the prompt. No live end-to-end Gemini
-request is claimed in this README.
+**Mocked model output for prompt-pipeline testing**
+
+```text
+The retrieved guidance suggests supervised play, training games, food
+puzzles, rotating toys, and climbing opportunities for cats, with activities
+adjusted to age, mobility, health, and preferences.
+```
+
+## Retrieval Evaluation
+
+The labeled dataset in
+[tests/evaluation_dataset.json](tests/evaluation_dataset.json) contains ten
+questions with expected knowledge documents.
+
+The actual local result was:
+
+```text
+Cases: 10
+Hits at 3: 9
+Hit@3: 0.90
+```
+
+Hit@3 means the expected document appeared among the three retrieved chunks.
+This metric evaluates retrieval only. It does not automatically evaluate
+generated answer quality or human medical usefulness.
 
 ## Design Decisions and Trade-offs
 
-- **TF-IDF:** Simple, local, reproducible, and dependency-light. It does not
-  understand semantic meaning as strongly as embeddings.
-- **Markdown knowledge base:** Easy to inspect and extend. Each file records a
-  public source URL.
-- **Topic/species boosts:** Small tie-breaking boosts help common dog, cat,
-  exercise, grooming, and planning queries.
-- **Similarity threshold:** Prevents clearly unrelated questions from reaching
-  generation.
-- **Gemini `gemini-2.5-flash`:** A supported generative runtime model. The exact
-  model availability may vary by account and region.
-- **No medical diagnosis:** Prompts prohibit unsupported diagnosis or
-  prescriptions and advise professional help.
-- **Session-only state:** Streamlit state is not persisted in a database.
-- **Human review:** Sources and retrieved passages are visible for inspection.
+- **TF-IDF:** Easy to reproduce and inspect; less semantic than embeddings.
+- **Markdown files:** Human-readable, source-attributed, and easy to add.
+- **Top-k and threshold:** Reject clearly unrelated retrieval before model calls.
+- **Pet context:** The UI includes the user's pet species and pending task names
+  without inventing personal details.
+- **Gemini 2.5 Flash:** Used for runtime generation; availability and rate limits
+  depend on account configuration.
+- **30-second timeout:** Limits a stalled request while preserving clear errors.
+- **No automatic task creation:** AI answers inform the owner but never modify
+  scheduling state.
+- **Human review:** Sources and passages remain visible.
+- **Session-only state:** PawPal+ does not use a database or persistent chat store.
 
-## Testing
+## Testing Results
 
-The automated suite covers both original scheduling behavior and RAG behavior:
-
-- Knowledge files load successfully.
-- Dog, cat, exercise, grooming, and planning queries retrieve passages.
-- Blank and irrelevant questions are handled safely.
-- Missing directories/files and missing API credentials are handled.
-- Mocked model failures do not escape as unhandled app errors.
-- Retrieved text is included in the model prompt.
-- Answer results contain source references.
-- Original scheduler, recurrence, filtering, and conflict tests remain intact.
-
-The final test count and command output are saved in
+Actual complete-suite output is saved in
 [tests/test_results.txt](tests/test_results.txt).
 
-No Gemini API key was available during validation. Therefore tests for model
-integration use mocks, and no real end-to-end Gemini response is claimed.
+The suite covers:
+
+- Existing scheduling, recurrence, filtering, sorting, and conflict behavior.
+- Streamlit blank-title validation.
+- Knowledge-document loading.
+- Dog/cat, exercise, grooming, feeding, preventive-care, and planning retrieval.
+- Species-aware retrieval.
+- Empty and irrelevant questions.
+- Missing knowledge files/directories.
+- Missing API credentials.
+- Mocked API failures.
+- Retrieved-context injection into the model prompt.
+- Source references in answer results.
+- A 10-case Hit@3 evaluation.
+
+No live Gemini call is included in the test evidence.
 
 ## Known Limitations
 
-- TF-IDF retrieval can miss paraphrases or semantically related wording.
-- The knowledge base is a small curated subset of general pet-care guidance.
-- The source documents are not continuously updated.
-- Gemini availability depends on account configuration, rate limits, and network.
-- The assistant is not a veterinarian and cannot personalize medical advice
-  safely.
-- Streamlit state is in-memory and not persistent.
-- No formal human evaluation of answer usefulness or factual accuracy was
-  performed.
+- TF-IDF can miss paraphrases or ambiguous natural language.
+- The knowledge base is small and not continuously updated.
+- Public general guidance cannot replace individualized veterinary care.
+- The app cannot diagnose, prescribe medication, provide dosing, or guarantee
+  safety for emergencies.
+- A Gemini key and network are required for live generated answers.
+- Streamlit chat history is session-only.
+- Human answer quality and factual accuracy have not been formally measured.
 
-## Reflection
+## Project Reflection
 
-PawPal+ demonstrates the difference between deterministic scheduling and
-retrieval-grounded generation. The scheduler remains explainable and
-API-independent, while RAG improves answer traceability and gives the assistant
-a bounded information source. The project also shows that integration requires
-source attribution, guardrails, mocks, credential handling, and regression tests
-for existing behavior. Responsible deployment requires continued review of
-source quality and professional advice for individual medical concerns.
+PawPal+ demonstrates that a rules-based scheduler can remain reliable while a
+separate RAG feature provides traceable general guidance. The implementation
+required source curation, retrieval ranking, prompt grounding, credential
+handling, UI integration, and tests for existing behavior. RAG reduces
+unsupported answers by constraining model context, but retrieved context and
+model wording still require human review.
+
+Development assistance came from GitHub Copilot and earlier Gemini concept
+exploration. The Copilot/Gemini development tools are distinct from the
+runtime Gemini API used by the assistant. The responsible-AI draft is in
+[model_card.md](model_card.md).

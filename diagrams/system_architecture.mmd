@@ -1,38 +1,43 @@
 flowchart TD
-    U[Pet owner] --> UI[Streamlit interface<br/>app.py]
+    Owner[Pet owner] --> UI[Streamlit interface]
 
-    subgraph Scheduling[Original scheduling workflow]
-        UI --> SV[Task and form validation]
-        SV --> DM[Owner, Pet, and Task<br/>pawpal_system.py]
-        DM --> SL[Rule-based scheduler<br/>priority and available time]
-        SL --> PL[Daily plan]
-        SL --> EX[Plan explanations]
-        DM --> CC[Conflict detection]
-        CC --> CW[Conflict warnings]
-        PL --> UI
-        EX --> UI
-        CW --> UI
+    subgraph SchedulingWorkflow[Deterministic scheduling workflow]
+        UI --> PetTaskData[Pet and task data]
+        PetTaskData --> Validation[Pet and task validation]
+        Validation --> Models[Owner, Pet, and Task models]
+        Models --> Scheduler[Rule-based scheduler]
+        Scheduler --> Plan[Daily plan]
+        Scheduler --> Explanation[Plan explanations]
+        Models --> Conflict[Conflict detection]
+        Conflict --> Warnings[Conflict warnings]
+        Plan --> Review[Human review]
+        Explanation --> Review
+        Warnings --> Review
+        Review --> UI
     end
 
-    subgraph RAG[Retrieval-augmented AI workflow]
-        UI --> QV[Question validation]
-        QV --> RT[TF-IDF RAG retriever]
-        RT --> KB[Local knowledge base<br/>knowledge_base]
-        KB --> RC[Retrieved context]
-        RC --> PM[Context-grounded prompt]
-        PM --> AM[Gemini 2.5 Flash API]
-        AM --> GA[Grounded answer]
-        GA --> SA[Source attribution]
-        SA --> UI
-        UI --> HR[Human review]
-        HR -. Adjust question or plan .-> UI
+    subgraph RAGWorkflow[Retrieval-augmented AI workflow]
+        UI --> Question[Pet-care question]
+        Question --> QValidation[Question validation]
+        QValidation --> Retriever[TF-IDF cosine retriever]
+        Retriever --> KnowledgeBase[Markdown knowledge base]
+        KnowledgeBase --> Chunks[Relevant document chunks]
+        Chunks --> Prompt[Retrieved context plus pet context]
+        Prompt --> Gemini[Gemini 2.5 Flash API]
+        Gemini --> Answer[Grounded answer]
+        Answer --> Sources[Source attribution]
+        Sources --> HumanReview[Human review]
+        HumanReview --> UI
     end
 
-    GU[Guardrails and error handling] -. Missing key, empty or irrelevant question, missing files, API failure .-> UI
-    AM -. Invalid or empty response .-> GU
-    RT -. No relevant passage .-> GU
+    Guardrails[Guardrails and error handling] -. Missing key, invalid question, missing files, irrelevant retrieval, timeout, rate limit, invalid response .-> UI
+    Retriever -. No relevant passage .-> Guardrails
+    Gemini -. API failure or invalid response .-> Guardrails
 
-    AT[Automated pytest suite] --> E1[Scheduler and UI tests]
-    AT --> E2[Retrieval and prompt tests]
-    AT --> E3[Mocked model and error tests]
-    AT -. Evaluation evidence .-> README[README results]
+    Logging[Structured logging] -. Retrieval events and errors, no API keys or questions .-> Retriever
+    Logging -. API and model errors .-> Gemini
+
+    Tests[Automated pytest suite] --> SchedulerTests[Scheduler and UI tests]
+    Tests --> RAGTests[Retrieval, prompt, source, and failure tests]
+    Tests --> Evaluation[10-case Hit at 3 evaluation]
+    Evaluation --> Results[tests/test_results.txt]

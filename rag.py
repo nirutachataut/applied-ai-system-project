@@ -5,12 +5,21 @@ from __future__ import annotations
 import logging
 import os
 import re
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 
 LOGGER = logging.getLogger("pawpal.rag")
+if not LOGGER.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s"
+    ))
+    LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.INFO)
+LOGGER.propagate = False
 
 
 class MissingKnowledgeBaseError(Exception):
@@ -43,6 +52,28 @@ class RagResult:
     sources: list[DocumentChunk]
     retrieved_context: str
     prompt: str
+
+
+@dataclass(frozen=True)
+class EvaluationCase:
+    """One retrieval evaluation example."""
+
+    question: str
+    expected_document: str
+
+
+@dataclass(frozen=True)
+class RetrievalEvaluation:
+    """Aggregate result for a retrieval evaluation dataset."""
+
+    cases: int
+    hits: int
+    hit_at_3: float
+
+    @property
+    def recall_at_3(self) -> float:
+        """Alias for Hit/Recall@3 used by this small binary dataset."""
+        return self.hit_at_3
 
 
 def validate_question(question: str) -> str:
@@ -136,11 +167,16 @@ class PetCareRetriever:
         question: str,
         top_k: int = 3,
         similarity_threshold: float = 0.05,
+        pet_species: str | None = None,
     ) -> list[DocumentChunk]:
         """Return the highest-similarity chunks above a minimum threshold."""
         from sklearn.metrics.pairwise import cosine_similarity
 
-        question_matrix = self.vectorizer.transform([question])
+        species = (pet_species or "").strip().lower()
+        retrieval_question = (
+            f"{species} {question}" if species in {"dog", "cat"} else question
+        )
+        question_matrix = self.vectorizer.transform([retrieval_question])
         scores = cosine_similarity(question_matrix, self.chunk_matrix)[0]
         lowered_question = question.lower()
         adjusted_scores = scores.copy()
@@ -150,13 +186,27 @@ class PetCareRetriever:
                 adjusted_scores[index] += 0.08
             if "cat" in lowered_question and "cat" in title:
                 adjusted_scores[index] += 0.08
+            if species == "dog" and "dog" in title:
+                adjusted_scores[index] += 0.08
+            if species == "cat" and "cat" in title:
+                adjusted_scores[index] += 0.08
             if (
                 any(word in lowered_question for word in ("exercise", "walk", "stimulat"))
                 and ("exercise" in title or "enrichment" in title)
             ):
-                adjusted_scores[index] += 0.06
+                adjusted_scores[index] += 0.15
             if "groom" in lowered_question and "groom" in title:
-                adjusted_scores[index] += 0.06
+                adjusted_scores[index] += 0.15
+            if (
+                any(word in lowered_question for word in ("feeding", "feed", "water", "hydration", "food"))
+                and "feeding" in title
+            ):
+                adjusted_scores[index] += 0.15
+            if (
+                any(word in lowered_question for word in ("preventive", "vaccination", "parasite", "dental"))
+                and "preventive" in title
+            ):
+                adjusted_scores[index] += 0.15
             if (
                 any(word in lowered_question for word in ("daily", "routine", "planning"))
                 and "daily" in title
@@ -224,11 +274,17 @@ def call_gemini(prompt: str, api_key: str | None = None) -> str:
     key = resolve_api_key(api_key)
     try:
         from google import genai
+        from google.genai import types
 
         client = genai.Client(api_key=key)
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=700,
+                http_options=types.HttpOptions(timeout=30_000),
+            ),
         )
         text = getattr(response, "text", None)
         if not isinstance(text, str) or not text.strip():
@@ -236,8 +292,27 @@ def call_gemini(prompt: str, api_key: str | None = None) -> str:
         return text.strip()
     except MissingApiKeyError:
         raise
+    except TimeoutError as exc:
+        LOGGER.warning("Gemini API request timed out")
+        raise ModelResponseError(
+            "AI generation timed out. Please try again."
+        ) from exc
     except Exception as exc:
-        LOGGER.warning("Gemini API request failed", extra={"error_type": type(exc).__name__})
+        error_text = str(exc).lower()
+        if "timeout" in error_text or "timed out" in error_text:
+            LOGGER.warning("Gemini API request timed out")
+            raise ModelResponseError(
+                "AI generation timed out. Please try again."
+            ) from exc
+        if "rate" in error_text or "429" in error_text or "resource exhausted" in error_text:
+            LOGGER.warning("Gemini API rate limit reached")
+            raise ModelResponseError(
+                "AI generation is temporarily rate-limited. Please try again later."
+            ) from exc
+        LOGGER.warning(
+            "Gemini API request failed",
+            extra={"error_type": type(exc).__name__},
+        )
         raise ModelResponseError(
             "AI generation failed due to an API, connection, or model error."
         ) from exc
@@ -248,10 +323,11 @@ def answer_question(
     retriever: PetCareRetriever,
     model_call: Callable[[str], str] | None = None,
     pet_context: str | None = None,
+    pet_species: str | None = None,
 ) -> RagResult:
     """Run validation, retrieval, prompt construction, and model generation."""
     normalized_question = validate_question(question)
-    chunks = retriever.retrieve(normalized_question)
+    chunks = retriever.retrieve(normalized_question, pet_species=pet_species)
     if not chunks:
         LOGGER.info("No relevant knowledge passages retrieved")
         raise ValueError(
@@ -285,3 +361,54 @@ def answer_question(
         retrieved_context="\n\n".join(chunk.text for chunk in chunks),
         prompt=prompt,
     )
+
+
+def evaluate_retrieval(
+    retriever: PetCareRetriever,
+    dataset_path: str | Path,
+) -> RetrievalEvaluation:
+    """Measure document Hit@3 against a labeled local evaluation dataset."""
+    path = Path(dataset_path)
+    if not path.exists():
+        raise MissingKnowledgeBaseError(
+            "The retrieval evaluation dataset is unavailable."
+        )
+
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise MissingKnowledgeBaseError(
+            "The retrieval evaluation dataset could not be read."
+        ) from exc
+
+    if not isinstance(rows, list) or not rows:
+        raise MissingKnowledgeBaseError(
+            "The retrieval evaluation dataset contains no cases."
+        )
+
+    hits = 0
+    for row in rows:
+        question = row.get("question")
+        expected_document = row.get("expected_document")
+        if not isinstance(question, str) or not isinstance(expected_document, str):
+            continue
+        species = row.get("pet_species")
+        retrieved = retriever.retrieve(
+            question,
+            top_k=3,
+            pet_species=species if isinstance(species, str) else None,
+        )
+        if any(chunk.file_name == expected_document for chunk in retrieved):
+            hits += 1
+
+    cases = len(rows)
+    result = RetrievalEvaluation(
+        cases=cases,
+        hits=hits,
+        hit_at_3=hits / cases if cases else 0.0,
+    )
+    LOGGER.info(
+        "Retrieval evaluation completed",
+        extra={"cases": result.cases, "hits": result.hits},
+    )
+    return result

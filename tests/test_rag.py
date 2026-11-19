@@ -9,6 +9,7 @@ from rag import (
     PetCareRetriever,
     answer_question,
     build_rag_prompt,
+    evaluate_retrieval,
     load_knowledge_documents,
     resolve_api_key,
 )
@@ -140,3 +141,37 @@ def test_build_prompt_includes_context_and_uncertainty_guardrail(retriever):
     assert "Daily Pet-Care Planning" in prompt
     assert "Mochi: species=cat" in prompt
     assert "Do not diagnose illness" in prompt
+
+
+def test_species_context_improves_cat_retrieval(retriever):
+    with_species = retriever.retrieve(
+        "What daily care activities are important?",
+        pet_species="cat",
+    )
+    assert with_species
+    assert "Cat Care Basics" in {chunk.title for chunk in with_species}
+
+
+def test_retrieval_evaluation_dataset_reports_hit_at_3(retriever):
+    dataset = Path(__file__).parent / "evaluation_dataset.json"
+    result = evaluate_retrieval(retriever, dataset)
+    assert result.cases == 10
+    assert result.hits >= 8
+    assert result.hit_at_3 >= 0.8
+
+
+def test_irrelevant_question_never_calls_model(retriever):
+    model_called = False
+
+    def unexpected_model(prompt):
+        nonlocal model_called
+        model_called = True
+        return "This should not be returned."
+
+    with pytest.raises(ValueError):
+        answer_question(
+            "How do quantum computers factor integers?",
+            retriever,
+            model_call=unexpected_model,
+        )
+    assert model_called is False

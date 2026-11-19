@@ -1,111 +1,113 @@
 # PawPal+ Model and Responsible-AI Card
 
-PawPal+ combines a deterministic pet-care scheduler with an optional
-retrieval-augmented generative assistant. The runtime AI is used only for
-general guidance; it does not make scheduler decisions or replace the
-user's judgment.
+PawPal+ is a Streamlit pet-care planning application with a local
+retrieval-augmented Gemini assistant. Its scheduler is deterministic and
+independent of API credentials. The AI assistant is a general-information
+feature, not a medical system.
 
 ## Intended Use
 
-PawPal+ is intended for pet owners who want to organize routine care tasks and
-ask general questions about dog care, cat care, exercise, feeding and hydration,
-grooming, and daily planning. The assistant should explain general guidance,
-show supporting public sources, and encourage professional review where
-appropriate.
+PawPal+ helps a pet owner track pets and care tasks, generate a time-bounded
+daily plan, identify schedule overlaps, and ask general questions about dog
+care, cat care, feeding, hydration, exercise, grooming, daily routines, and
+preventive care.
 
-The model must answer from retrieved passages and must not present unsupported
-medical diagnoses or treatment instructions. Scheduling remains a rules-based
-feature independent of the API.
+The assistant retrieves local reference passages before model generation.
+Generated answers should be limited to retrieved context and shown with source
+links. Human review remains required.
 
 ## Limitations and Biases
 
-- TF-IDF can miss paraphrases or favor keyword overlap over meaning.
-- The knowledge base is a small curated set and may not cover uncommon, regional,
-  breed-specific, age-specific, or medical situations.
-- Public guidance is general and cannot represent every individual animal.
-- Generated wording can oversimplify or combine sources incorrectly.
-- No persistent memory or longitudinal health record is used.
-- The system has limited pet context and should not infer details not supplied
-  by the owner.
-- Source availability or model behavior may vary outside this environment.
+- TF-IDF may miss semantically similar wording or rank keyword matches poorly.
+- The knowledge base contains a small curated set of general references.
+- Public guidance cannot represent every breed, age, health state, region, or
+  individual animal.
+- Retrieved passages are not continuously verified or updated.
+- Species boosts improve common dog/cat queries but do not replace individualized
+  retrieval or veterinary judgment.
+- Gemini can still phrase information incompletely or combine passages incorrectly.
+- The application does not persist health records and should not infer facts
+  that the user did not provide.
+- No live Gemini call was completed in the implementation environment.
 
 ## Reliability and Evaluation
 
-Automated tests cover document loading, relevant retrieval, dog/cat queries,
-empty and irrelevant questions, missing knowledge files, missing credentials,
-mocked API failures, prompt context, source references, and original scheduling
-behavior. Real Gemini calls require a valid key and network access. No live key
-was available during validation, so model behavior was tested with mocks and
-retrieval was tested locally.
+The pytest suite tests original scheduler behavior, document loading, dog/cat
+retrieval, exercise and grooming retrieval, blank and irrelevant questions,
+missing files, missing credentials, mocked API failures, source attribution,
+and injection of retrieved context into prompts.
 
-The UI shows retrieved passages and URLs for human review. It also reports
-uncertainty or API errors. These safeguards reduce unsupported output but do
-not guarantee medical accuracy.
+A labeled 10-case dataset measures document Hit@3. Actual local evaluation
+result: **9 of 10 cases, or 90% Hit@3**. This is an automatically measured
+retrieval metric, not a human assessment of answer accuracy or medical
+appropriateness.
+
+Testing also revealed that generic species wording can rank the wrong document
+if TF-IDF weighting is not balanced by topic boosts. The retriever now combines
+cosine similarity with modest species and topic boosts.
 
 ## Potential Misuse and Safeguards
 
-A user could misuse the assistant as a veterinary diagnostic tool or follow
-general guidance without considering an individual pet's needs. PawPal+ mitigates
-this by:
+The assistant could be misused as a diagnosis tool, dosing guide, or emergency
+substitute. It could also receive a schedule-changing request. The implementation
+reduces these risks by:
 
-- Restricting model answers to retrieved context.
-- Prohibiting diagnosis and prescribed treatment in the prompt.
-- Showing source URLs and the retrieved passages.
-- Displaying uncertainty when retrieval finds no relevant passage.
-- Keeping deterministic scheduling separate from AI output.
-- Requiring human review and professional care for individual concerns.
-
-API keys are read from environment variables or Streamlit secrets, never
-hardcoded in source. Logs record event and error types, not API keys or raw
-questions.
+- Requiring relevant retrieved context before generation.
+- Telling the model not to diagnose, prescribe, dose, or invent personal details.
+- Returning uncertainty for irrelevant or unsupported questions.
+- Displaying expandable retrieved passages and source URLs.
+- Keeping scheduling deterministic and independent of AI output.
+- Never modifying tasks automatically based on an AI response.
+- Prompting users to consult a qualified professional for individual concerns.
+- Keeping API keys in environment variables or Streamlit secrets.
+- Logging event types and error classes without raw user questions or credentials.
 
 ## What Was Surprising During Testing
 
-Testing showed that keyword overlap alone can retrieve a generic or wrong
-species passage. Small title/topic boosts and a relevance threshold improved
-dog, cat, grooming, and exercise retrieval. It was also surprising how often
-integration failures came from missing credentials or malformed UI state rather
-than model logic. Mocked tests were therefore useful for verifying prompt
-construction and error handling.
+The evaluation showed that plausible keyword matches can be misleading. A
+generic cat question may initially retrieve daily-planning or dog text unless
+species and topic signals are balanced. It was also clear that robust integration
+depends more than model calls: missing files, missing credentials, malformed
+responses, and user-interface state need explicit tests.
 
-## How AI Tools Assisted Development
+## How AI Assisted Development
 
-GitHub Copilot and Google Gemini were development assistants. Copilot can assist
-with code, tests, and documentation, while Gemini can help explore design ideas.
-Neither tool is the runtime RAG model. The runtime model is a separately
-configured Google Gemini API call after local retrieval.
+GitHub Copilot provided development assistance for code organization, tests,
+debugging, and documentation. Gemini was explored as a development tool, but
+Copilot and Gemini development suggestions are separate from the runtime
+application.
 
-All AI-assisted code and wording should be reviewed and tested. API calls,
-retrieval thresholds, dependencies, and model behavior must be verified against
-the repository rather than assumed to be correct.
+The PawPal+ runtime uses the Google Gemini SDK only after local retrieval.
+Runtime calls are grounded in retrieved context and configured through
+`GEMINI_API_KEY` or Streamlit secrets. No live Gemini call is claimed in this
+card without an observed successful response.
 
-## Draft for Personal Review
+## Draft for Author Review
 
-> The following draft is marked for the author to personalize after reviewing
-> the actual development process and testing experience.
+> This marked draft should be personalized after the author reviews the actual
+> implementation and testing work.
 
-### One AI Suggestion I Accepted
+### One AI Suggestion Accepted
 
-I accepted using TF-IDF with local Markdown files instead of a paid vector
-database or external indexing service. This made the RAG implementation easy to
-run, inspect, and test while preserving source attribution.
+One accepted suggestion was to use TF-IDF and local Markdown documents instead
+of a paid vector database or external retrieval service. This kept RAG
+reproducible and understandable for a college application.
 
-### Why I Accepted It
+### Why It Was Accepted
 
-The smaller implementation matched a college project, kept knowledge and code
-reproducible, and allowed a genuine retrieval step without unnecessary
-infrastructure. It also supported clear tests for retrieval relevance and
-missing documents.
+The approach directly satisfies the retrieval workflow, stores inspectable
+sources, avoids extra infrastructure, and supports mocked tests and
+reproducible Hit@3 evaluation.
 
-### One AI Suggestion I Rejected or Modified
+### One AI Suggestion Rejected or Modified
 
-I modified an initial architecture proposal that placed Gemini retrieval or
-generation in front of the scheduler and could make scheduling depend on an API.
-I kept the original deterministic scheduler independent and added RAG as a
-separate optional UI feature.
+One suggestion was to let the assistant directly change care tasks or daily
+plans. That behavior was rejected. AI suggestions remain separate from the
+deterministic scheduler and require explicit future approval before any task
+would be added.
 
-### Why I Modified It
+### Why It Was Modified
 
-Scheduling behavior should remain available when credentials or the network
-fail. Separating the workflows also preserves existing test behavior and makes
-human review of AI guidance explicit.
+Automatic schedule changes could silently override priorities, availability,
+veterinary instructions, or user intent. Keeping the scheduler final authority
+preserves existing behavior and maintains human oversight.
