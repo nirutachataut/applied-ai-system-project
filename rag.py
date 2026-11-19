@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from dotenv import load_dotenv
+
 
 LOGGER = logging.getLogger("pawpal.rag")
 if not LOGGER.handlers:
@@ -20,6 +22,10 @@ if not LOGGER.handlers:
     LOGGER.addHandler(handler)
 LOGGER.setLevel(logging.INFO)
 LOGGER.propagate = False
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env", override=False)
 
 
 class MissingKnowledgeBaseError(Exception):
@@ -269,16 +275,28 @@ def resolve_api_key(explicit_key: str | None = None) -> str:
     return api_key
 
 
-def call_gemini(prompt: str, api_key: str | None = None) -> str:
+def resolve_model_name(explicit_model: str | None = None) -> str:
+    """Resolve the Gemini model from an explicit value or GEMINI_MODEL."""
+    model_name = explicit_model or os.getenv("GEMINI_MODEL")
+    model_name = model_name.strip() if isinstance(model_name, str) else ""
+    return model_name or "gemini-flash-lite-latest"
+
+
+def call_gemini(
+    prompt: str,
+    api_key: str | None = None,
+    model_name: str | None = None,
+) -> str:
     """Call the configured Gemini model and return a validated text response."""
     key = resolve_api_key(api_key)
+    model = resolve_model_name(model_name)
     try:
         from google import genai
         from google.genai import types
 
         client = genai.Client(api_key=key)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.2,
@@ -299,6 +317,7 @@ def call_gemini(prompt: str, api_key: str | None = None) -> str:
         ) from exc
     except Exception as exc:
         error_text = str(exc).lower()
+        status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
         if "timeout" in error_text or "timed out" in error_text:
             LOGGER.warning("Gemini API request timed out")
             raise ModelResponseError(
@@ -316,6 +335,24 @@ def call_gemini(prompt: str, api_key: str | None = None) -> str:
             raise ModelResponseError(
                 "The Gemini API key is missing or invalid. "
                 "Please check GEMINI_API_KEY in Streamlit secrets or your environment."
+            ) from exc
+        if status_code == 404 or "not found" in error_text:
+            LOGGER.warning(
+                "Gemini model unavailable",
+                extra={"model": model},
+            )
+            raise ModelResponseError(
+                f"The configured Gemini model '{model}' is unavailable for this API "
+                "key or API configuration. Set GEMINI_MODEL to another listed Flash model."
+            ) from exc
+        if status_code in {503, 504}:
+            LOGGER.warning(
+                "Gemini service unavailable",
+                extra={"status_code": status_code},
+            )
+            raise ModelResponseError(
+                "The Gemini service is temporarily unavailable. "
+                "Please try again shortly."
             ) from exc
         if "rate" in error_text or "429" in error_text or "resource exhausted" in error_text:
             LOGGER.warning("Gemini API rate limit reached")

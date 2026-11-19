@@ -28,7 +28,9 @@ links. Human review remains required.
 - Gemini can still phrase information incompletely or combine passages incorrectly.
 - The application does not persist health records and should not infer facts
   that the user did not provide.
-- No live Gemini call was completed in the implementation environment.
+- A live Gemini request succeeded with `gemini-flash-lite-latest` after
+  model discovery and 404/503/504 testing. Live 404 responses with earlier
+  model choices were identified as model/API availability issues.
 
 ## Reliability and Evaluation
 
@@ -79,8 +81,9 @@ application.
 
 The PawPal+ runtime uses the Google Gemini SDK only after local retrieval.
 Runtime calls are grounded in retrieved context and configured through
-`GEMINI_API_KEY` or Streamlit secrets. No live Gemini call is claimed in this
-card without an observed successful response.
+`GEMINI_API_KEY` or Streamlit secrets. A live connection and generated responses
+were observed successfully with `gemini-flash-lite-latest`; the key itself was
+never printed or logged.
 
 ## Draft for Author Review
 

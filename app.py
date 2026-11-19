@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from pawpal_system import Owner, Pet, Scheduler, Task
 from rag import (
@@ -24,6 +25,8 @@ st.set_page_config(
     layout="wide",
 )
 
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=False)
+
 
 def get_gemini_key() -> str | None:
     """Read the Gemini key from Streamlit secrets or environment variables."""
@@ -35,6 +38,23 @@ def get_gemini_key() -> str | None:
         pass
     environment_key = os.getenv("GEMINI_API_KEY")
     return environment_key.strip() if environment_key else None
+
+
+def get_gemini_model() -> str:
+    """Return the configured model name without exposing credentials."""
+    secret_model = None
+    try:
+        secret_model = st.secrets.get("GEMINI_MODEL")
+    except Exception:
+        pass
+    if isinstance(secret_model, str) and secret_model.strip():
+        return secret_model.strip()
+    environment_model = os.getenv("GEMINI_MODEL")
+    return (
+        environment_model.strip()
+        if environment_model
+        else "gemini-flash-lite-latest"
+    )
 
 
 def build_pet_context(owner: Owner) -> str | None:
@@ -346,6 +366,18 @@ with schedule_tab:
 
 with ai_tab:
     st.subheader("PawPal+ AI Pet Care Assistant")
+    kb_available = (Path(__file__).resolve().parent / "knowledge_base").is_dir()
+    api_configured = bool(get_gemini_key())
+    status_col1, status_col2 = st.columns(2)
+    if kb_available:
+        status_col1.success("Knowledge base: available")
+    else:
+        status_col1.error("Knowledge base: unavailable")
+    if api_configured:
+        status_col2.success("Gemini: API key configured")
+    else:
+        status_col2.warning("Gemini: API key not configured")
+    st.caption(f"Configured model: `{get_gemini_model()}`")
     st.markdown(
         "Ask a general question. PawPal+ searches local pet-care references, "
         "includes relevant passages in a Gemini prompt, and displays sources "
@@ -393,6 +425,7 @@ with ai_tab:
                         model_call=lambda prompt: call_gemini(
                             prompt,
                             get_gemini_key(),
+                            get_gemini_model(),
                         ),
                         pet_context=pet_context,
                         pet_species=selected_species(owner),

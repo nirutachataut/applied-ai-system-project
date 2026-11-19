@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 
 from rag import (
     MissingApiKeyError,
@@ -12,6 +13,7 @@ from rag import (
     evaluate_retrieval,
     load_knowledge_documents,
     resolve_api_key,
+    resolve_model_name,
 )
 
 
@@ -94,6 +96,22 @@ def test_api_key_supports_environment_variable(monkeypatch):
 def test_explicit_api_key_takes_precedence(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-environment-key")
     assert resolve_api_key("test-explicit-key") == "test-explicit-key"
+
+
+def test_gemini_model_defaults_and_environment_override(monkeypatch):
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    assert resolve_model_name() == "gemini-flash-lite-latest"
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-flash-latest")
+    assert resolve_model_name() == "gemini-flash-latest"
+
+
+def test_dotenv_loads_gemini_key(monkeypatch, tmp_path):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("GEMINI_API_KEY=test-dotenv-key\n", encoding="utf-8")
+    assert load_dotenv(env_file, override=True)
+    assert resolve_api_key() == "test-dotenv-key"
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
 
 def test_api_failure_does_not_crash_answer_pipeline(retriever):

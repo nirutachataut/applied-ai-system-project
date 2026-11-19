@@ -40,7 +40,7 @@ Pet owner
   -> local Markdown knowledge base
   -> relevant document chunks
   -> prompt with retrieved context and optional pet context
-  -> Gemini 2.5 Flash
+  -> Gemini Flash Lite Latest
   -> grounded answer
   -> source attribution
   -> human review
@@ -154,11 +154,11 @@ python3 -m pytest -v tests/test_rag.py::test_retrieval_evaluation_dataset_report
 The complete suite uses mocked model responses. No Gemini API usage or paid
 service is required for test execution.
 
-## Actual Retrieval Interaction Examples
+## Actual Live Gemini RAG Interaction Examples
 
-These examples demonstrate actual local retrieval executed in this repository.
-They are not claims of a live Gemini response. The model portion was not
-executed because no Gemini key was available during validation.
+These examples are actual observations from the local `gemini-flash-lite-latest`
+request executed with the project's configured Gemini key. The key was used only
+for the request and is not reproduced in this README.
 
 ### 1. Dog walking
 
@@ -175,12 +175,13 @@ Title: Dog Care Basics
 Source: https://www.avma.org/resources-tools/pet-owners/petcare/dog-care
 ```
 
-**Mocked model output for prompt-pipeline testing**
+**Observed live Gemini output**
 
 ```text
-Walking needs vary by the individual dog. The retrieved guidance says
-physical activity should reflect age, health, size, and breed, and to ask a
-veterinarian for an individual plan.
+Based on the provided information, exercise needs vary substantially among
+breeds and individual dogs, and not every dog needs the same walking duration.
+The routine should reflect the dog's age, health, size, and veterinarian
+guidance. The assistant recommends seeking individualized advice when needed.
 ```
 
 ### 2. Cat care
@@ -198,11 +199,13 @@ Title: Cat Care Basics
 Source: https://www.avma.org/resources-tools/pet-owners/petcare/cat-care
 ```
 
-**Mocked model output for prompt-pipeline testing**
+**Observed live Gemini output**
 
 ```text
-The retrieved guidance highlights fresh water, appropriate feeding,
-regular litter-area care, enrichment, rest, and routine veterinary care.
+Important general daily care activities include regular feeding, fresh water,
+a clean litter area, enrichment, opportunities for restful low-stress time,
+and climbing, exploring, hiding, or gentle play for indoor cats. Product
+choices should be labeled safe for cats.
 ```
 
 ### 3. Mental stimulation
@@ -220,12 +223,13 @@ Title: Exercise and Mental Enrichment
 Source: https://www.rspcapetinsurance.org.au/pet-care/dogs-and-cats/exercise-and-mental-stimulation
 ```
 
-**Mocked model output for prompt-pipeline testing**
+**Observed live Gemini output**
 
 ```text
-The retrieved guidance suggests supervised play, training games, food
-puzzles, rotating toys, and climbing opportunities for cats, with activities
-adjusted to age, mobility, health, and preferences.
+The live response stated that the retrieved context did not contain specific
+mental-stimulation activities, so it did not invent a detailed routine and
+recommended contacting a veterinarian or relevant professional for individual
+guidance.
 ```
 
 ## Retrieval Evaluation
@@ -253,7 +257,8 @@ generated answer quality or human medical usefulness.
 - **Top-k and threshold:** Reject clearly unrelated retrieval before model calls.
 - **Pet context:** The UI includes the user's pet species and pending task names
   without inventing personal details.
-- **Gemini 2.5 Flash:** Used for runtime generation; availability and rate limits
+- **Gemini Flash Lite Latest:** Used for runtime generation after model
+  discovery and live testing; availability and rate limits
   depend on account configuration.
 - **30-second timeout:** Limits a stalled request while preserving clear errors.
 - **No automatic task creation:** AI answers inform the owner but never modify
@@ -281,7 +286,8 @@ The suite covers:
 - Source references in answer results.
 - A 10-case Hit@3 evaluation.
 
-No live Gemini call is included in the test evidence.
+Automated pytest evidence does not call live Gemini. Live success was verified
+separately with `tests/check_gemini_connection.py` and four real RAG questions.
 
 ## Known Limitations
 
