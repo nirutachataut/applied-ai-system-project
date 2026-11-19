@@ -1,86 +1,113 @@
 # PawPal+
 
-PawPal+ is the original pet-care planning project carried forward from
-CodePath AI110 Modules 1–3; the repository history identifies its starter as
-the **Module 2 Project**, rather than documenting separate projects for each
-module. The original project was designed to help pet owners track care tasks
-and create an explained daily plan based on task priorities and available
-time. This submission builds on that foundation with a Streamlit interface,
-task completion and recurrence, sorting and filtering, and conflict warnings;
-the scheduler continues to use deterministic rules.
+PawPal+ is a Python and Streamlit pet-care planning application created for
+CodePath AI110. It began as a Module 2 project for representing pets and care
+tasks and building an explained daily schedule. It now includes local
+retrieval-augmented generation (RAG) for general pet-care questions.
+
+## Project Goals
+
+The original PawPal+ goals were to:
+
+- Represent owners, pets, and care tasks.
+- Prioritize pending tasks and respect an available-time budget.
+- Explain scheduling decisions.
+- Detect overlapping scheduled intervals.
+- Support recurrence, filtering, sorting, and task completion.
+
+The final project keeps those deterministic features and adds an optional
+**AI Pet Care Assistant** that searches a local knowledge base before asking a
+generative model for an answer.
+
+## What RAG Adds
+
+Retrieval-augmented generation (RAG) first searches local reference material,
+adds relevant passages to the model prompt, and asks the model to answer only
+from that context. It is useful for PawPal+ because general pet-care guidance
+can change over time, and source attribution makes answers more reviewable than
+answers generated from model memory alone.
+
+The implementation in `rag.py`:
+
+1. Loads Markdown documents from `knowledge_base/`.
+2. Splits each document into searchable chunks.
+3. Uses TF-IDF and cosine similarity to retrieve relevant passages.
+4. Adds those passages and user-provided pet/task context to a Gemini prompt.
+5. Returns an answer and source URLs.
+6. Communicates missing sources, missing credentials, irrelevant questions,
+   and model failures without replacing the scheduler.
+
+Retrieved context materially changes the model input: each answer prompt
+contains passages, document titles, source URLs, and explicit instructions not
+to diagnose or prescribe treatment. The model receives no claim that is outside
+the retrieved context.
 
 ## Features
 
-- Enter owner availability and preferences, and add pets and care tasks.
-- Store task duration, priority, due date, scheduled time, recurrence, and
-  completion status.
-- Generate a plan by selecting pending tasks in priority order while they fit
-  the available-time budget; display an explanation for each decision.
-- Review tasks by pet and completion status, mark tasks complete, and create
-  daily or weekly recurring occurrences.
-- Sort the task list by scheduled time and warn when valid pending tasks
-  overlap on the same date.
+- Owner availability and preference entry.
+- Multiple pets and species selection.
+- Care-task creation with duration, priority, due date, scheduled time, and
+  recurrence.
+- Priority and available-time scheduling with written explanations.
+- Same-date scheduling conflict detection.
+- Pet/status filtering, sorting, completion, and recurring-task creation.
+- AI assistant question validation.
+- Local TF-IDF document retrieval and source attribution.
+- Gemini runtime model integration with environment or Streamlit secret keys.
+- Friendly handling of missing credentials and model/API errors.
 
-Owner preferences are stored but are not used by the scheduler. The generated
-plan does not arrange tasks into time slots or filter them by due date; time
-and date are used for task-list sorting and conflict detection.
+## Architecture
 
-## Architecture Overview
+The Streamlit interface in `app.py` updates the `Owner`, `Pet`, and `Task`
+models in `pawpal_system.py`. `Scheduler` remains independent of API credentials
+and produces the deterministic daily plan and conflict warnings.
 
-The Streamlit interface in `app.py` collects input, applies form constraints,
-and updates the `Owner`, `Pet`, and `Task` objects defined in
-`pawpal_system.py`. When the user requests a plan, `Scheduler` applies
-priority and available-time rules, explains selected and skipped tasks, and
-checks scheduled tasks for same-date overlaps. The interface shows the plan,
-explanations, and any conflict warnings for the owner to review; the owner can
-adjust inputs and generate another plan.
+The RAG workflow is separate:
 
-These deterministic checks are part of the application workflow. The pytest
-suite separately tests the scheduling and conflict-checking methods; it is
-not run automatically by the Streamlit app. It includes a focused Streamlit
-test that checks rejection of blank task titles, but it does not cover the
-full interactive interface or perform an automatic quality evaluation of a
-generated plan. A startup smoke check is described in the
-[test results log](tests/test_results.txt).
-
-```mermaid
-flowchart TD
-    U[Pet owner<br/>Availability, pets, and care tasks] --> UI[Streamlit interface<br/>app.py]
-    UI --> IV[Form validation<br/>Pet and task title required; availability, duration, and priority constrained]
-    IV --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
-    DM --> SL[Rule-based scheduling<br/>Priority and available-time budget]
-    SL --> PL[Generated daily plan<br/>Selected pending tasks]
-    SL --> EX[Task explanations<br/>Reasons for selected and skipped tasks]
-    DM --> CC[Conflict checking<br/>Valid pending intervals on the same date]
-    CC --> CW[Conflict warnings]
-    PL --> UI
-    EX --> UI
-    CW --> UI
-    UI --> HR[Human review<br/>Review the plan and warnings]
-    HR -. Adjust inputs and regenerate .-> UI
-
-    AT[Automated pytest suite<br/>tests/test_pawpal.py]
-    AT -. Test model behavior .-> DM
-    AT -. Test plan choices and explanations .-> SL
-    AT -. Test overlap detection .-> CC
-    AT -. Test blank-title validation .-> IV
+```text
+Pet owner -> Streamlit question -> validation -> TF-IDF retriever
+-> knowledge-base chunks -> retrieved context -> Gemini prompt
+-> grounded answer -> source display -> human review
 ```
 
-The standalone Mermaid source is [diagrams/system_architecture.mmd](diagrams/system_architecture.mmd).
-The class diagram is [diagrams/uml_final.mmd](diagrams/uml_final.mmd).
+The editable Mermaid architecture diagram is
+[diagrams/system_architecture.mmd](diagrams/system_architecture.mmd).
 
-## Setup and Run
+## Installation
 
-From the project root, create and activate a virtual environment, then install
-the declared dependencies:
+Python 3.11 is recommended.
 
 ```bash
+cd applied-ai-system-project
 python3 -m venv .venv
 source .venv/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
-Start the Streamlit interface:
+## API Configuration
+
+The runtime model is Google Gemini. Create a Gemini API key, then set:
+
+```bash
+export GEMINI_API_KEY="your-key"
+```
+
+Streamlit can also read `.streamlit/secrets.toml`:
+
+```toml
+GEMINI_API_KEY = "your-key"
+```
+
+Do not commit `.env`, `.streamlit/secrets.toml`, or an API key. A sample
+environment file is [.env.example](.env.example).
+
+If no key is configured, scheduling and all deterministic features remain
+available. The AI section reports that generation is unavailable.
+
+## Launch
+
+Run the Streamlit application:
 
 ```bash
 streamlit run app.py
@@ -92,199 +119,136 @@ Run the command-line demonstration:
 python3 main.py
 ```
 
-Run the automated tests:
+Run all tests:
 
 ```bash
 python3 -m pytest -v
 ```
 
-These commands use `python3`. If your system exposes Python as `python`,
-replace `python3` with `python` in the commands above. In this validation
-environment, the requested `python -m pytest -v` command could not run because
-no `python` executable is on PATH; the full suite was run successfully with
-`python3 -m pytest -v` instead.
+## Sample RAG Interactions
 
-## Sample Interactions
+These examples execute the real retrieval and prompt pipeline with a mock model
+call. They are included to demonstrate the integrated flow because no Gemini API
+key was available in the development environment. They are **not live Gemini
+responses**.
 
-These examples call the same `Owner`, `Pet`, `Task`, and `Scheduler` classes
-used by the application. The outputs below were produced by running the
-examples against the project code.
+### 1. Dog walking
 
-### 1. Normal scheduling
-
-**Input:** Riley has 45 minutes for Mochi's feeding and play tasks.
-
-```python
-from pawpal_system import Owner, Pet, Scheduler, Task
-
-owner = Owner("Riley", 45, [])
-pet = Pet("Mochi", "cat")
-pet.add_task(Task("Feed Mochi", 15, 3))
-pet.add_task(Task("Play with Mochi", 20, 2))
-owner.add_pet(pet)
-
-scheduler = Scheduler(owner)
-print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
-print(scheduler.explain_plan())
-```
-
-**Observed output:**
+**Input:**
 
 ```text
-Plan: Feed Mochi, Play with Mochi
-Selected 'Feed Mochi' (priority 3): it fits in the remaining time.
-Selected 'Play with Mochi' (priority 2): it fits in the remaining time.
+How often should I walk my dog?
 ```
 
-**Explanation:** Both tasks are selected in priority order because their
-combined 35 minutes fit within Riley's 45-minute budget.
+**Retrieved source:**
 
-### 2. Priority with limited time
+- [Dog Care Basics](https://www.avma.org/resources-tools/pet-owners/petcare/dog-care)
 
-**Input:** Jordan has 35 minutes. A 30-minute walk has priority 3, medication
-takes 10 minutes at priority 2, and play takes 5 minutes at priority 1.
-
-```python
-from pawpal_system import Owner, Pet, Scheduler, Task
-
-owner = Owner("Jordan", 35, [])
-pet = Pet("Buddy", "dog")
-pet.add_task(Task("Walk Buddy", 30, 3))
-pet.add_task(Task("Medication", 10, 2))
-pet.add_task(Task("Play with Buddy", 5, 1))
-owner.add_pet(pet)
-
-scheduler = Scheduler(owner)
-print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
-print(scheduler.explain_plan())
-```
-
-**Observed output:**
+**Mocked model output produced by the test pipeline:**
 
 ```text
-Plan: Walk Buddy, Play with Buddy
-Selected 'Walk Buddy' (priority 3): it fits in the remaining time.
-Skipped 'Medication' (priority 2): not enough available time.
-Selected 'Play with Buddy' (priority 1): it fits in the remaining time.
+Walking needs vary by the individual dog. The retrieved guidance says to
+provide physical activity appropriate to age, health, size, and breed, and to
+ask a veterinarian for an individual plan.
 ```
 
-**Explanation:** The 30-minute walk is selected first. Medication cannot fit
-in the remaining 5 minutes, but the 5-minute play task can.
+### 2. Cat care
 
-### 3. Overlapping scheduled tasks
-
-**Input:** Buddy's 09:00 walk lasts 30 minutes and overlaps with a 09:15
-feeding task on the same date.
-
-```python
-from datetime import date
-from pawpal_system import Owner, Pet, Scheduler, Task
-
-owner = Owner("Alex", 60, [])
-pet = Pet("Buddy", "dog")
-pet.add_task(Task(
-    "Walk Buddy", 30, 3, scheduled_time="09:00", due_date=date(2025, 1, 1)
-))
-pet.add_task(Task(
-    "Feed Buddy", 10, 2, scheduled_time="09:15", due_date=date(2025, 1, 1)
-))
-owner.add_pet(pet)
-
-scheduler = Scheduler(owner)
-print("Plan:", ", ".join(task.title for task in scheduler.generate_plan()))
-print("Warnings:")
-for warning in scheduler.detect_conflicts():
-    print(warning)
-```
-
-**Observed output:**
+**Input:**
 
 ```text
-Plan: Walk Buddy, Feed Buddy
-Warnings:
-Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Buddy (09:15-09:25).
+What are important daily care activities for cats?
 ```
 
-**Explanation:** Both tasks fit in the 60-minute budget, but their scheduled
-intervals overlap. PawPal+ reports the conflict and leaves the owner to review
-the plan; it does not move or remove either task.
+**Retrieved source:**
 
-Conflict detection reports an overlap but does not remove tasks from the plan
-or move them to different times. The user must review the warning.
+- [Cat Care Basics](https://www.avma.org/resources-tools/pet-owners/petcare/cat-care)
 
-## Design Decisions and Limitations
+**Mocked model output produced by the test pipeline:**
 
-- **Python data models:** `Owner`, `Pet`, and `Task` keep the domain objects
-  simple and make the scheduling behavior testable without starting the UI.
-- **Streamlit interface:** Streamlit provides a small interactive interface
-  directly connected to those Python objects. State is held in Streamlit
-  session state; there is no persistent database.
-- **Greedy priority scheduling:** The scheduler sorts by descending priority
-  and adds each positive-duration pending task if it fits the remaining time.
-  This is easy to explain, but it is not a global optimizer: a high-priority
-  long task can prevent a combination of lower-priority tasks from fitting.
-- **Separate conflict checking:** Overlap warnings compare scheduled intervals
-  for the same date. They alert the owner but do not change the generated
-  plan. Cross-midnight overlaps are not detected.
-- **No AI model:** The system uses explicit rules, not a trained model,
-  generative agent, retriever, or evaluator. Preferences are collected but
-  do not influence task selection. GitHub Copilot and Google Gemini were
-  used during development only; no Gemini API or other AI service is
-  integrated into the application.
-- **Input limitations:** The Streamlit form restricts duration to positive
-  values, available time to non-negative values, and task titles to nonblank
-  text; priorities and times use selection controls. Direct Python callers
-  can still create invalid task values; the scheduler skips non-positive
-  durations and the conflict checker ignores invalid or missing scheduling
-  details.
+```text
+The retrieved guidance highlights fresh water, species-appropriate feeding,
+regular litter-area care, enrichment, rest, and routine veterinary care.
+```
 
-## Reliability and Evaluation
+### 3. Mental stimulation
 
-Automated testing is the project's reliability method. The suite in
-`tests/test_pawpal.py` covers model behavior, sorting, filtering, recurrence,
-plan selection, priority/time-budget decisions, and overlap detection. It
-includes empty schedules, zero time, completed and non-positive-duration
-tasks, missing scheduling details, invalid times, back-to-back tasks, and
-overlaps across pets.
+**Input:**
 
-Final run: **27 tests passed, 0 failed** with `python3 -m pytest -v`. The suite
-covers model behavior, scheduling priorities and time limits, conflict
-detection, invalid scheduling details, and blank-title validation in the
-Streamlit interface.
+```text
+How can I keep my pet mentally stimulated?
+```
 
-| Test input | Evaluation criteria | Actual result | Pass/Fail |
-|---|---|---|---|
-| 40-minute budget; tasks of 30 minutes/priority 3, 20/priority 2, and 10/priority 1 | Select tasks in priority order without exceeding the budget | Selected the 30-minute priority-3 task, skipped the 20-minute task, then selected the 10-minute task; total 40 minutes | Pass |
-| Completed task, zero- and negative-duration tasks, plus a valid 10-minute task | Exclude completed/invalid tasks and include a task that fits | Only the valid 10-minute task was selected; completed and non-positive tasks were explained as skipped | Pass |
-| No tasks; then a 10-minute task with zero available minutes | Handle an empty schedule and no-fit budget without an exception | Empty input returned no plan and “No care tasks are available”; zero minutes returned no plan with a no-fit explanation | Pass |
-| Positive-duration task without a due date or scheduled time | Generate a plan when optional scheduling details are absent | The task was selected; due date and scheduled time are not required by plan generation | Pass |
-| Two pets have tasks on the same date, one starting at 09:00 for 30 minutes and one at 09:15 for 10 minutes | Detect partial overlap across pets | Returned `Scheduling conflict: Walk Buddy (09:00-09:30) overlaps with Feed Luna (09:15-09:25).` | Pass |
-| Tasks have missing or invalid times, are completed, or have zero duration | Ignore ineligible tasks during conflict checks | No conflict warning was returned for the tested invalid/ineligible inputs | Pass |
-| Whitespace-only task title entered in Streamlit | Reject incomplete task before creating it | Warning shown and no task added | Pass |
+**Retrieved source:**
 
-The command output is saved in [tests/test_results.txt](tests/test_results.txt).
-The suite includes a focused AppTest for blank task-title validation. A
-separate startup smoke check also completed without app exceptions and
-confirmed that the default owner was initialized. Streamlit emitted its
-expected bare-mode `ScriptRunContext` warning during those checks. This is
-not a full interactive browser test. No formal human-evaluation study was
-performed; the interface presents plans and warnings for the owner to inspect.
+- [Exercise and Mental Enrichment](https://www.rspcapetinsurance.org.au/pet-care/dogs-and-cats/exercise-and-mental-stimulation)
 
-Remaining gaps include automated UI interaction tests, tests for
-cross-midnight conflicts, and broader validation of malformed direct API
-inputs. The plan generator does not use due dates or scheduled times, and the
-application has no automatic evaluator or AI model. These results demonstrate
-tested deterministic behavior, not AI accuracy or suitability of pet-care
-advice.
+**Mocked model output produced by the test pipeline:**
 
-## Project Reflection
+```text
+The retrieved guidance suggests supervised play, training games, food puzzles,
+rotating toys, and climbing opportunities for cats, with activities adjusted
+to age, mobility, health, and preferences.
+```
 
-The existing [reflection](reflection.md) describes the design progression
-from four focused classes to the Streamlit interface, and the trade-off
-between a readable pairwise conflict check and a more complex optimization.
-It also records the importance of reviewing AI assistance and running tests
-rather than accepting generated code without verification. Owner preferences
-and richer scheduling constraints remain possible improvements.
+The live model can change wording, but the application still supplies the same
+retrieved passages and source URLs in the prompt. No live end-to-end Gemini
+request is claimed in this README.
 
-The graded AI-collaboration and responsible-AI reflection is in
-[model_card.md](model_card.md).
+## Design Decisions and Trade-offs
+
+- **TF-IDF:** Simple, local, reproducible, and dependency-light. It does not
+  understand semantic meaning as strongly as embeddings.
+- **Markdown knowledge base:** Easy to inspect and extend. Each file records a
+  public source URL.
+- **Topic/species boosts:** Small tie-breaking boosts help common dog, cat,
+  exercise, grooming, and planning queries.
+- **Similarity threshold:** Prevents clearly unrelated questions from reaching
+  generation.
+- **Gemini `gemini-2.5-flash`:** A supported generative runtime model. The exact
+  model availability may vary by account and region.
+- **No medical diagnosis:** Prompts prohibit unsupported diagnosis or
+  prescriptions and advise professional help.
+- **Session-only state:** Streamlit state is not persisted in a database.
+- **Human review:** Sources and retrieved passages are visible for inspection.
+
+## Testing
+
+The automated suite covers both original scheduling behavior and RAG behavior:
+
+- Knowledge files load successfully.
+- Dog, cat, exercise, grooming, and planning queries retrieve passages.
+- Blank and irrelevant questions are handled safely.
+- Missing directories/files and missing API credentials are handled.
+- Mocked model failures do not escape as unhandled app errors.
+- Retrieved text is included in the model prompt.
+- Answer results contain source references.
+- Original scheduler, recurrence, filtering, and conflict tests remain intact.
+
+The final test count and command output are saved in
+[tests/test_results.txt](tests/test_results.txt).
+
+No Gemini API key was available during validation. Therefore tests for model
+integration use mocks, and no real end-to-end Gemini response is claimed.
+
+## Known Limitations
+
+- TF-IDF retrieval can miss paraphrases or semantically related wording.
+- The knowledge base is a small curated subset of general pet-care guidance.
+- The source documents are not continuously updated.
+- Gemini availability depends on account configuration, rate limits, and network.
+- The assistant is not a veterinarian and cannot personalize medical advice
+  safely.
+- Streamlit state is in-memory and not persistent.
+- No formal human evaluation of answer usefulness or factual accuracy was
+  performed.
+
+## Reflection
+
+PawPal+ demonstrates the difference between deterministic scheduling and
+retrieval-grounded generation. The scheduler remains explainable and
+API-independent, while RAG improves answer traceability and gives the assistant
+a bounded information source. The project also shows that integration requires
+source attribution, guardrails, mocks, credential handling, and regression tests
+for existing behavior. Responsible deployment requires continued review of
+source quality and professional advice for individual medical concerns.

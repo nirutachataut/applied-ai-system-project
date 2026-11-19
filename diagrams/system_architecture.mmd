@@ -1,20 +1,38 @@
 flowchart TD
-    U[Pet owner<br/>Availability, pets, and care tasks] --> UI[Streamlit interface<br/>app.py]
-    UI --> IV[Form validation<br/>Pet and task title required; availability, duration, and priority constrained]
-    IV --> DM[Data models<br/>Owner, Pet, and Task<br/>pawpal_system.py]
-    DM --> SL[Rule-based scheduling<br/>Priority and available-time budget]
-    SL --> PL[Generated daily plan<br/>Selected pending tasks]
-    SL --> EX[Task explanations<br/>Reasons for selected and skipped tasks]
-    DM --> CC[Conflict checking<br/>Valid pending intervals on the same date]
-    CC --> CW[Conflict warnings]
-    PL --> UI
-    EX --> UI
-    CW --> UI
-    UI --> HR[Human review<br/>Review the plan and warnings]
-    HR -. Adjust inputs and regenerate .-> UI
+    U[Pet owner] --> UI[Streamlit interface<br/>app.py]
 
-    AT[Automated pytest suite<br/>tests/test_pawpal.py]
-    AT -. Test model behavior .-> DM
-    AT -. Test plan choices and explanations .-> SL
-    AT -. Test overlap detection .-> CC
-    AT -. Test blank-title validation .-> IV
+    subgraph Scheduling[Original scheduling workflow]
+        UI --> SV[Task and form validation]
+        SV --> DM[Owner, Pet, and Task<br/>pawpal_system.py]
+        DM --> SL[Rule-based scheduler<br/>priority and available time]
+        SL --> PL[Daily plan]
+        SL --> EX[Plan explanations]
+        DM --> CC[Conflict detection]
+        CC --> CW[Conflict warnings]
+        PL --> UI
+        EX --> UI
+        CW --> UI
+    end
+
+    subgraph RAG[Retrieval-augmented AI workflow]
+        UI --> QV[Question validation]
+        QV --> RT[TF-IDF RAG retriever]
+        RT --> KB[Local knowledge base<br/>knowledge_base]
+        KB --> RC[Retrieved context]
+        RC --> PM[Context-grounded prompt]
+        PM --> AM[Gemini 2.5 Flash API]
+        AM --> GA[Grounded answer]
+        GA --> SA[Source attribution]
+        SA --> UI
+        UI --> HR[Human review]
+        HR -. Adjust question or plan .-> UI
+    end
+
+    GU[Guardrails and error handling] -. Missing key, empty or irrelevant question, missing files, API failure .-> UI
+    AM -. Invalid or empty response .-> GU
+    RT -. No relevant passage .-> GU
+
+    AT[Automated pytest suite] --> E1[Scheduler and UI tests]
+    AT --> E2[Retrieval and prompt tests]
+    AT --> E3[Mocked model and error tests]
+    AT -. Evaluation evidence .-> README[README results]

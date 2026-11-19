@@ -1,8 +1,18 @@
 from datetime import date, time
+from pathlib import Path
 
 import streamlit as st
 
 from pawpal_system import Owner, Pet, Scheduler, Task
+from rag import (
+    MissingApiKeyError,
+    MissingKnowledgeBaseError,
+    ModelResponseError,
+    PetCareRetriever,
+    answer_question,
+    call_gemini,
+    load_knowledge_documents,
+)
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -292,3 +302,91 @@ if st.session_state.daily_plan:
 if st.session_state.plan_explanation:
     st.write("Plan explanation")
     st.write(st.session_state.plan_explanation)
+
+st.divider()
+
+st.subheader("AI Pet Care Assistant")
+st.caption(
+    "Ask a general pet-care question. Answers use PawPal+'s local knowledge "
+    "base and require a configured Gemini API key."
+)
+
+rag_question = st.text_input(
+    "Pet-care question",
+    key="rag_question",
+    placeholder="How often should I walk my dog?",
+)
+
+if st.button("Ask AI"):
+    if not rag_question or not rag_question.strip():
+        st.warning("Please enter a question.")
+    else:
+        try:
+            api_key = None
+            try:
+                api_key = st.secrets["GEMINI_API_KEY"]
+            except Exception:
+                api_key = None
+
+            pet_context = None
+            if owner.pets:
+                pet_context_parts = []
+                for pet in owner.pets:
+                    pending_titles = [
+                        task.title for task in pet.get_tasks() if not task.completed
+                    ]
+                    pet_context_parts.append(
+                        f"{pet.name}: species={pet.species}; "
+                        f"pending_tasks={', '.join(pending_titles) if pending_titles else 'none'}"
+                    )
+                pet_context = "\n".join(pet_context_parts)
+
+            chunks = load_knowledge_documents(
+                Path(__file__).resolve().parent / "knowledge_base"
+            )
+            retriever = PetCareRetriever(chunks)
+
+            with st.spinner("Searching pet-care guidance and generating an answer..."):
+                result = answer_question(
+                    rag_question,
+                    retriever,
+                    model_call=lambda prompt: call_gemini(prompt, api_key),
+                    pet_context=pet_context,
+                )
+
+            st.markdown("### Answer")
+            st.write(result.answer)
+            st.markdown("### Retrieved sources")
+            seen_sources = set()
+            for source in result.sources:
+                key = (source.title, source.source_url)
+                if key in seen_sources:
+                    continue
+                seen_sources.add(key)
+                if source.source_url:
+                    st.markdown(f"- [{source.title}]({source.source_url})")
+                else:
+                    st.markdown(f"- {source.title}")
+
+            with st.expander("Review retrieved passages"):
+                for source in result.sources:
+                    st.markdown(f"**{source.title}**")
+                    st.write(source.text)
+        except ValueError as exc:
+            st.warning(str(exc))
+        except MissingKnowledgeBaseError as exc:
+            st.error(str(exc))
+        except MissingApiKeyError as exc:
+            st.info(
+                f"{exc} Add GEMINI_API_KEY to your environment or Streamlit secrets "
+                "to enable AI generation. Scheduling remains available."
+            )
+        except ModelResponseError as exc:
+            st.error(f"{exc} Please try again.")
+        except RuntimeError as exc:
+            st.error(str(exc))
+
+st.caption(
+    "General guidance only: AI answers are not veterinary diagnoses or treatment "
+    "instructions. Please review sources and consult a qualified professional."
+)
